@@ -1,14 +1,16 @@
 package com.example.audioplayer;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.DocumentsContract;
+import android.provider.Settings;
 import android.widget.Button;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -30,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     //Уникальные коды для идентификации запросов
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int FOLDER_PICKER_CODE = 200;
+    private static final int MANAGE_STORAGE_PERMISSION_CODE = 300;
     //**************
 
     // Ключ для сохранения URI выбранной папки в SharedPreferences
@@ -65,11 +68,18 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnSelectFolders.setOnClickListener(v -> {
-            /*Обработчик кнопки первичного выбора директорий*/
-            if (hasPermissions()) {
+            if (!hasManageStoragePermission()) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Доступ ко всем файлам")
+                        .setMessage("Для выбора папок, включая Download, приложению нужен полный доступ к хранилищу. Нажмите \"Разрешить\" и включите доступ в настройках.")
+                        .setPositiveButton("Разрешить", (dialog, which) -> requestManageStoragePermission())
+                        .setNegativeButton("Отмена", null)
+                        .show();
+            } else if (hasPermissions()) {
                 openFolderPicker();
+            } else {
+                requestPermissions();
             }
-            else requestPermissions();
         });
 
         btnStartScan.setOnClickListener(v -> {
@@ -81,6 +91,30 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         updateFoldersDisplay();
+    }
+
+    private boolean hasManageStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager();
+        } else {
+            // Для Android 10 и ниже достаточно старых разрешений
+            return true;
+        }
+    }
+
+    // Запрашиваем полный доступ
+    private void requestManageStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                intent.addCategory("android.intent.category.DEFAULT");
+                intent.setData(Uri.parse(String.format("package:%s", getPackageName())));
+                startActivityForResult(intent, MANAGE_STORAGE_PERMISSION_CODE);
+            } catch (Exception e) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                startActivityForResult(intent, MANAGE_STORAGE_PERMISSION_CODE);
+            }
+        }
     }
 
     private boolean hasPermissions() {
@@ -116,15 +150,22 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data){
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == MANAGE_STORAGE_PERMISSION_CODE) {
+            if (hasManageStoragePermission()) {
+                Toast.makeText(this, "Полный доступ получен. Теперь можно выбирать любые папки.", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "Полный доступ не предоставлен. Выбор некоторых папок может быть недоступен.", Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
+
         if (requestCode == FOLDER_PICKER_CODE && resultCode == RESULT_OK && data != null) {
             Uri folderUri = data.getData();
             if (folderUri != null) {
-                String displayName = getDisplayNameFromUri(folderUri);
-                if (displayName == null || displayName.isEmpty()) {
-                    displayName = folderUri.getLastPathSegment();
-                }
+                String displayName = getHumanReadableFolderName(folderUri);
                 SelectedFolder newFolder = new SelectedFolder(folderUri.toString(), displayName);
                 List<SelectedFolder> currentFolders = getSelectedFoldersList();
                 currentFolders.add(newFolder);
@@ -134,26 +175,13 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-    private String getDisplayNameFromUri(Uri uri) {
-        String displayName = null;
-        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                int nameIndex = cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME);
-                if (nameIndex != -1) {
-                    displayName = cursor.getString(nameIndex);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return displayName;
-    }
     private List<SelectedFolder> getSelectedFoldersList() {
         Set<String> uriSet = sharedPreferences.getStringSet(PREF_FOLDERS_SET, new HashSet<>());
         List<SelectedFolder> folders = new ArrayList<>();
         for (String uriString : uriSet) {
-            folders.add(new SelectedFolder(uriString, uriString));
+            Uri uri = Uri.parse(uriString);
+            String displayName = getHumanReadableFolderName(uri);
+            folders.add(new SelectedFolder(uriString, displayName));
         }
         return folders;
     }
@@ -198,6 +226,29 @@ public class MainActivity extends AppCompatActivity {
                         Toast.LENGTH_LONG).show();
             }
         }
+    }
+
+    private String getHumanReadableFolderName(Uri treeUri) {
+        String docId = DocumentsContract.getTreeDocumentId(treeUri);
+        String[] parts = docId.split(":");
+        if (parts.length >= 2) {
+            String type = parts[0];
+            String path = parts[1];
+            if ("primary".equals(type)) {
+                String lastSegment = path;
+                int slashIndex = path.lastIndexOf('/');
+                if (slashIndex != -1) {
+                    lastSegment = path.substring(slashIndex + 1);
+                }
+                if (lastSegment.isEmpty()) {
+                    return "Внутренняя память";
+                }
+                return lastSegment;
+            } else {
+                return type + (path.isEmpty() ? "" : "/" + path);
+            }
+        }
+        return "Папка";
     }
 
 }
