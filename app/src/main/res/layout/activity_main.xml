@@ -11,13 +11,34 @@
         android:text="Моя медиатека"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:layout_marginBottom="24dp" />
+        android:layout_marginBottom="16dp" />
 
     <Button
         android:id="@+id/btn_select_folders"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Выбрать директории для сканирования"
+        android:text="Добавить папку" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Выбранные папки:"
+        android:textStyle="bold"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="8dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_selected_folders"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:layout_marginBottom="16dp" />
+
+    <Button
+        android:id="@+id/btn_start_scan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Начать сканирование"
+        android:enabled="false" />
 
 </LinearLayout>
