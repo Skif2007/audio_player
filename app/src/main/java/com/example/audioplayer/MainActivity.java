@@ -9,10 +9,10 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.DocumentsContract;
 import android.provider.Settings;
 import android.widget.Button;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,22 +21,18 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.HashSet;
 
 public class MainActivity extends AppCompatActivity {
 
-    //**************
-    //Уникальные коды для идентификации запросов
     private static final int PERMISSION_REQUEST_CODE = 100;
-    private static final int FOLDER_PICKER_CODE = 200;
     private static final int MANAGE_STORAGE_PERMISSION_CODE = 300;
-    //**************
 
-    // Ключ для сохранения URI выбранной папки в SharedPreferences
-    private static final String PREF_FOLDERS_SET = "selected_folder_uri";
+    private static final String PREF_FOLDERS_SET = "selected_folder_paths";
 
     private Button btnSelectFolders, btnStartScan;
     private RecyclerView rvSelectedFolders;
@@ -71,14 +67,14 @@ public class MainActivity extends AppCompatActivity {
             if (!hasManageStoragePermission()) {
                 new AlertDialog.Builder(this)
                         .setTitle("Доступ ко всем файлам")
-                        .setMessage("Для выбора папок, включая Download, приложению нужен полный доступ к хранилищу. Нажмите \"Разрешить\" и включите доступ в настройках.")
+                        .setMessage("Для выбора папок, включая Download и Android, приложению нужен полный доступ к хранилищу. Нажмите \"Разрешить\" и включите доступ в настройках.")
                         .setPositiveButton("Разрешить", (dialog, which) -> requestManageStoragePermission())
                         .setNegativeButton("Отмена", null)
                         .show();
-            } else if (hasPermissions()) {
+            } else if (hasMediaPermissions()) {
                 openFolderPicker();
             } else {
-                requestPermissions();
+                requestMediaPermissions();
             }
         });
 
@@ -87,22 +83,20 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Сначала выберите хотя бы одну папку", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "Начинаем сканирование " + getSelectedFoldersSet().size() + " папок", Toast.LENGTH_SHORT).show();
-                // TODO: Сканирование
+                // TODO: Логика сканирования
             }
         });
+
         updateFoldersDisplay();
     }
 
     private boolean hasManageStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             return Environment.isExternalStorageManager();
-        } else {
-            // Для Android 10 и ниже достаточно старых разрешений
-            return true;
         }
+        return true;
     }
 
-    // Запрашиваем полный доступ
     private void requestManageStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
@@ -117,71 +111,72 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private boolean hasPermissions() {
-        /*Проверяет, получило ли приложение необходимые разрешения*/
+    private boolean hasMediaPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            return ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED;
-        }
-        else {
-            return ContextCompat.checkSelfPermission(this,
-                    Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED;
+        } else {
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
         }
     }
 
-    private void requestPermissions() {
-        /*Запрашивает у пользователя необходимые разрешения с учётом версии*/
+    private void requestMediaPermissions() {
         String permission;
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permission = Manifest.permission.READ_MEDIA_AUDIO;
-        }
-        else {
+        } else {
             permission = Manifest.permission.READ_EXTERNAL_STORAGE;
         }
-        ActivityCompat.requestPermissions(this,
-                new String[]{permission},
-                PERMISSION_REQUEST_CODE);
+        ActivityCompat.requestPermissions(this, new String[]{permission}, PERMISSION_REQUEST_CODE);
     }
 
-    private void openFolderPicker(){
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        startActivityForResult(intent, FOLDER_PICKER_CODE);
+    /**
+     * ОТКРЫВАЕТ НАШ PICKER С ПОДДЕРЖКОЙ ВСЕХ ХРАНИЛИЩ
+     */
+    private void openFolderPicker() {
+        new SimpleFolderPickerDialog(
+                this,
+                selectedPaths -> {
+                    if (selectedPaths != null && !selectedPaths.isEmpty()) {
+                        List<SelectedFolder> currentFolders = getSelectedFoldersList();
+                        int addedCount = 0;
+
+                        for (String path : selectedPaths) {
+                            File folder = new File(path);
+                            if (folder.exists() && folder.isDirectory()) {
+                                // Проверяем на дубликаты
+                                boolean exists = false;
+                                for (SelectedFolder f : currentFolders) {
+                                    if (f.getUriString().equals(path)) {
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+                                if (!exists) {
+                                    String displayName = getHumanReadableFolderName(path);
+                                    currentFolders.add(new SelectedFolder(path, displayName));
+                                    addedCount++;
+                                }
+                            }
+                        }
+
+                        if (addedCount > 0) {
+                            saveFoldersList(currentFolders);
+                            updateFoldersDisplay();
+                            Toast.makeText(MainActivity.this, "Добавлено папок: " + addedCount, Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(MainActivity.this, "Выбранные папки уже в списке", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+        ).show();
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (requestCode == MANAGE_STORAGE_PERMISSION_CODE) {
-            if (hasManageStoragePermission()) {
-                Toast.makeText(this, "Полный доступ получен. Теперь можно выбирать любые папки.", Toast.LENGTH_LONG).show();
-            } else {
-                Toast.makeText(this, "Полный доступ не предоставлен. Выбор некоторых папок может быть недоступен.", Toast.LENGTH_LONG).show();
-            }
-            return;
-        }
-
-        if (requestCode == FOLDER_PICKER_CODE && resultCode == RESULT_OK && data != null) {
-            Uri folderUri = data.getData();
-            if (folderUri != null) {
-                String displayName = getHumanReadableFolderName(folderUri);
-                SelectedFolder newFolder = new SelectedFolder(folderUri.toString(), displayName);
-                List<SelectedFolder> currentFolders = getSelectedFoldersList();
-                currentFolders.add(newFolder);
-                saveFoldersList(currentFolders);
-                updateFoldersDisplay();
-                Toast.makeText(this, "Папка \"" + displayName + "\" добавлена.", Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
     private List<SelectedFolder> getSelectedFoldersList() {
-        Set<String> uriSet = sharedPreferences.getStringSet(PREF_FOLDERS_SET, new HashSet<>());
+        Set<String> pathSet = sharedPreferences.getStringSet(PREF_FOLDERS_SET, new HashSet<>());
         List<SelectedFolder> folders = new ArrayList<>();
-        for (String uriString : uriSet) {
-            Uri uri = Uri.parse(uriString);
-            String displayName = getHumanReadableFolderName(uri);
-            folders.add(new SelectedFolder(uriString, displayName));
+        for (String path : pathSet) {
+            String displayName = getHumanReadableFolderName(path);
+            folders.add(new SelectedFolder(path, displayName));
         }
         return folders;
     }
@@ -191,12 +186,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveFoldersList(List<SelectedFolder> folders) {
-        Set<String> uriSet = new HashSet<>();
+        Set<String> pathSet = new HashSet<>();
         for (SelectedFolder folder : folders) {
-            uriSet.add(folder.getUriString());
+            pathSet.add(folder.getUriString());
         }
         SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putStringSet(PREF_FOLDERS_SET, uriSet);
+        editor.putStringSet(PREF_FOLDERS_SET, pathSet);
         editor.apply();
     }
 
@@ -207,48 +202,48 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    /*Автоматически вызывается и обрабатывает ответ пользователя на запрос разрешений*/
-    public void onRequestPermissionsResult(
-            int requestCode,
-            @NonNull String[] permissions,
-            @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this,
-                        "Разрешение получено! Теперь можно выбирать папки.",
-                        Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Разрешение получено!", Toast.LENGTH_SHORT).show();
                 openFolderPicker();
             } else {
-                Toast.makeText(this,
-                        "Без разрешения на чтение файлов приложение не сможет работать.",
-                        Toast.LENGTH_LONG).show();
+                Toast.makeText(this, "Без разрешения доступ к файлам невозможен", Toast.LENGTH_LONG).show();
             }
         }
     }
 
-    private String getHumanReadableFolderName(Uri treeUri) {
-        String docId = DocumentsContract.getTreeDocumentId(treeUri);
-        String[] parts = docId.split(":");
-        if (parts.length >= 2) {
-            String type = parts[0];
-            String path = parts[1];
-            if ("primary".equals(type)) {
-                String lastSegment = path;
-                int slashIndex = path.lastIndexOf('/');
-                if (slashIndex != -1) {
-                    lastSegment = path.substring(slashIndex + 1);
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == MANAGE_STORAGE_PERMISSION_CODE) {
+            if (hasManageStoragePermission()) {
+                Toast.makeText(this, "Полный доступ получен!", Toast.LENGTH_LONG).show();
+                if (hasMediaPermissions()) {
+                    openFolderPicker();
+                } else {
+                    requestMediaPermissions();
                 }
-                if (lastSegment.isEmpty()) {
-                    return "Внутренняя память";
-                }
-                return lastSegment;
             } else {
-                return type + (path.isEmpty() ? "" : "/" + path);
+                Toast.makeText(this, "Доступ не предоставлен. Выбор некоторых папок может быть недоступен.", Toast.LENGTH_LONG).show();
             }
         }
-        return "Папка";
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    private String getHumanReadableFolderName(String path) {
+        if (path == null) return "Папка";
+        File folder = new File(path);
+        String name = folder.getName();
+        if (name.isEmpty() || "/".equals(path)) return "Внутренняя память";
+        if ("/storage/emulated/0/Download".equals(path)) return "Download";
+        if ("/storage/emulated/0/Android".equals(path)) return "Android";
+        if ("/storage/emulated/0/Music".equals(path)) return "Music";
+        return name;
+    }
 }
