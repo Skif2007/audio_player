@@ -1,5 +1,5 @@
 package com.example.audioplayer;
-
+// TODO: добавить возможность заходить внутрь папок, улучшить визуал, добавить анимации
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -29,6 +29,7 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
 
+    /* коды для ответов */
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int MANAGE_STORAGE_PERMISSION_CODE = 300;
 
@@ -55,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
         rvSelectedFolders.setAdapter(foldersAdapter);
 
         foldersAdapter.setOnFolderDeleteListener(position -> {
+            /*Обработчик нажатия на иконку для удаления папки
+            из списка*/
             List<SelectedFolder> currentList = getSelectedFoldersList();
             if (position >= 0 && position < currentList.size()) {
                 currentList.remove(position);
@@ -64,6 +67,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnSelectFolders.setOnClickListener(v -> {
+            /*Обработчик кнопки выбрать папки
+            * для проверки на то, что необходимые права выданы*/
             if (!hasManageStoragePermission()) {
                 new AlertDialog.Builder(this)
                         .setTitle("Доступ ко всем файлам")
@@ -79,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnStartScan.setOnClickListener(v -> {
+            /*Обработчик заглушка для начала сканирования*/
             if (getSelectedFoldersSet().isEmpty()) {
                 Toast.makeText(this, "Сначала выберите хотя бы одну папку", Toast.LENGTH_SHORT).show();
             } else {
@@ -91,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean hasManageStoragePermission() {
+        /*Проверка необходимости разрешения и его наличия*/
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             return Environment.isExternalStorageManager();
         }
@@ -98,6 +105,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestManageStoragePermission() {
+        /*Вызываем стандартное окно для пользователя где
+         он может выдать разрешение */
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
                 Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
@@ -112,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean hasMediaPermissions() {
+        /*Проверяет наличие разрешения*/
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED;
         } else {
@@ -120,6 +130,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestMediaPermissions() {
+        /*Вызывает системный диалог для получения разрешения*/
         String permission;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permission = Manifest.permission.READ_MEDIA_AUDIO;
@@ -129,10 +140,9 @@ public class MainActivity extends AppCompatActivity {
         ActivityCompat.requestPermissions(this, new String[]{permission}, PERMISSION_REQUEST_CODE);
     }
 
-    /**
-     * ОТКРЫВАЕТ НАШ PICKER С ПОДДЕРЖКОЙ ВСЕХ ХРАНИЛИЩ
-     */
+
     private void openFolderPicker() {
+        /*Открывает мой кастыльный диалог для выбора необходимых директорий*/
         new SimpleFolderPickerDialog(
                 this,
                 selectedPaths -> {
@@ -172,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private List<SelectedFolder> getSelectedFoldersList() {
+        /*Загружает список папок из настроек с читаемыми именами*/
         Set<String> pathSet = sharedPreferences.getStringSet(PREF_FOLDERS_SET, new HashSet<>());
         List<SelectedFolder> folders = new ArrayList<>();
         for (String path : pathSet) {
@@ -186,6 +197,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveFoldersList(List<SelectedFolder> folders) {
+        //Сохраняем список папок в настройки
         Set<String> pathSet = new HashSet<>();
         for (SelectedFolder folder : folders) {
             pathSet.add(folder.getUriString());
@@ -196,11 +208,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateFoldersDisplay() {
+        //Обновляет отображение списка папок на экране
         List<SelectedFolder> folders = getSelectedFoldersList();
         foldersAdapter.setFolders(folders);
         btnStartScan.setEnabled(!folders.isEmpty());
     }
 
+
+    //Обработка ответов на запросы прав
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -237,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String getHumanReadableFolderName(String path) {
+        //Извлекает из пути просто называние папки
         if (path == null) return "Папка";
         File folder = new File(path);
         String name = folder.getName();

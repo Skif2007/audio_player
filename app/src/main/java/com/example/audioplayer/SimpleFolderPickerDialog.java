@@ -5,12 +5,11 @@ import android.content.Context;
 import android.os.Build;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -19,7 +18,9 @@ import android.widget.TextView;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class SimpleFolderPickerDialog {
 
@@ -30,6 +31,7 @@ public class SimpleFolderPickerDialog {
     private final Context context;
     private final OnFoldersSelectedListener listener;
     private final List<StorageRoot> availableRoots = new ArrayList<>();
+    private final Set<String> selectedPathsSet = new HashSet<>();
 
     // Внутренний класс для хранения информации о корне хранилища
     private static class StorageRoot {
@@ -45,7 +47,7 @@ public class SimpleFolderPickerDialog {
 
         @Override
         public String toString() {
-            return displayName; // Для отображения в Spinner
+            return displayName;
         }
     }
 
@@ -55,9 +57,7 @@ public class SimpleFolderPickerDialog {
         detectAllStorageVolumes();
     }
 
-    /**
-     * Сканирует систему на предмет всех доступных томов хранилища
-     */
+
     private void detectAllStorageVolumes() {
         // 1. Всегда добавляем основное хранилище (внутренняя память)
         File primaryDir = android.os.Environment.getExternalStorageDirectory();
@@ -67,14 +67,13 @@ public class SimpleFolderPickerDialog {
                 true
         ));
 
-        // 2. Пытаемся найти внешние SD-карты через StorageManager (API 24+)
+        // 2. Пытаемся найти внешние SD-карты через StorageManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             try {
                 StorageManager storageManager = (StorageManager) context.getSystemService(Context.STORAGE_SERVICE);
                 if (storageManager != null) {
                     List<StorageVolume> volumes = storageManager.getStorageVolumes();
                     for (StorageVolume volume : volumes) {
-                        // Пропускаем основное хранилище, чтобы не дублировать
                         if (volume.isPrimary()) continue;
 
                         String path = getVolumePath(volume);
@@ -86,18 +85,13 @@ public class SimpleFolderPickerDialog {
                     }
                 }
             } catch (Exception e) {
-                // Если не получилось через API, пробуем стандартные пути (fallback)
                 detectSdCardFallback();
             }
         } else {
-            // Для API < 24 используем простой перебор известных путей
             detectSdCardFallback();
         }
     }
 
-    /**
-     * Fallback-метод для поиска SD-карт на старых устройствах или при ошибках
-     */
     private void detectSdCardFallback() {
         String[] possiblePaths = {
                 "/storage/sdcard1",
@@ -121,9 +115,6 @@ public class SimpleFolderPickerDialog {
         }
     }
 
-    /**
-     * Рефлексия для получения пути из StorageVolume (так как getPath() скрыт в некоторых версиях)
-     */
     private String getVolumePath(StorageVolume volume) {
         try {
             Method getPath = StorageVolume.class.getMethod("getPath");
@@ -148,7 +139,6 @@ public class SimpleFolderPickerDialog {
             return;
         }
 
-        // 1. Создаём Spinner для выбора хранилища
         Spinner storageSpinner = new Spinner(context, Spinner.MODE_DROPDOWN);
         ArrayAdapter<StorageRoot> adapter = new ArrayAdapter<>(context,
                 android.R.layout.simple_spinner_dropdown_item, availableRoots);
@@ -176,11 +166,25 @@ public class SimpleFolderPickerDialog {
                 for (File folder : folders) {
                     CheckBox checkBox = new CheckBox(context);
                     checkBox.setText(folder.getName());
-                    checkBox.setTag(folder.getAbsolutePath());
                     checkBox.setTextSize(15);
-                    checkBox.setPadding(0, 8, 0, 8);
+                    final String currentFolderPath = folder.getAbsolutePath();
+                    checkBox.setTag(currentFolderPath);
+                    if (selectedPathsSet.contains(currentFolderPath)) {
+                        checkBox.setChecked(true);
+                    }
+
+                    checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                        @Override
+                        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                            if (isChecked) {
+                                selectedPathsSet.add(currentFolderPath);
+                            } else {
+                                selectedPathsSet.remove(currentFolderPath);
+                            }
+                        }
+                    });
+
                     layout.addView(checkBox);
-                    checkBoxes.add(checkBox);
                 }
             } else {
                 TextView empty = new TextView(context);
@@ -190,7 +194,7 @@ public class SimpleFolderPickerDialog {
             }
         };
 
-        // 4. Слушатель переключения хранилища
+        // Слушатель переключения хранилища
         storageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -200,7 +204,7 @@ public class SimpleFolderPickerDialog {
             public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        // 5. Собираем верхнюю панель (заголовок + спиннер)
+        // Собираем верхнюю панель (заголовок + спиннер)
         LinearLayout header = new LinearLayout(context);
         header.setOrientation(LinearLayout.VERTICAL);
         TextView titleText = new TextView(context);
@@ -220,16 +224,16 @@ public class SimpleFolderPickerDialog {
                 .setTitle("📁 Выбор папок")
                 .setView(mainLayout)
                 .setPositiveButton("ГОТОВО", (dialog, which) -> {
-                    List<String> selected = new ArrayList<>();
+                    //List<String> selected = new ArrayList<>();
                     // Проходимся по всем чекбоксам в текущем списке
-                    for (int i = 0; i < layout.getChildCount(); i++) {
-                        View child = layout.getChildAt(i);
-                        if (child instanceof CheckBox && ((CheckBox) child).isChecked()) {
-                            selected.add((String) child.getTag());
-                        }
-                    }
+//                    for (int i = 0; i < layout.getChildCount(); i++) {
+//                        View child = layout.getChildAt(i);
+//                        if (child instanceof CheckBox && ((CheckBox) child).isChecked()) {
+//                            selected.add((String) child.getTag());
+//                        }
+//                    }
                     if (listener != null) {
-                        listener.onFoldersSelected(selected);
+                        listener.onFoldersSelected(new ArrayList<>(selectedPathsSet));
                     }
                 })
                 .setNegativeButton("Отмена", null)
