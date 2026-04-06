@@ -5,6 +5,11 @@ import android.content.Context;
 import android.os.Build;
 import android.os.storage.StorageManager;
 import android.os.storage.StorageVolume;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -14,6 +19,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
+
+import androidx.core.content.ContextCompat;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -130,48 +137,37 @@ public class SimpleFolderPickerDialog {
     }
 
     public void show() {
-        if (availableRoots.isEmpty()) {
-            new AlertDialog.Builder(context)
-                    .setTitle("Ошибка")
-                    .setMessage("Не удалось найти хранилища")
-                    .setPositiveButton("OK", null)
-                    .show();
-            return;
-        }
-
-        Spinner storageSpinner = new Spinner(context, Spinner.MODE_DROPDOWN);
+        View dialogView = LayoutInflater.from(context).inflate(R.layout.dialog_folder_picker, null);
+        Spinner storageSpinner = dialogView.findViewById(R.id.spinner_storage);
+        LinearLayout layoutFoldersList = dialogView.findViewById(R.id.layout_folders_list);
         ArrayAdapter<StorageRoot> adapter = new ArrayAdapter<>(context,
                 android.R.layout.simple_spinner_dropdown_item, availableRoots);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         storageSpinner.setAdapter(adapter);
-        storageSpinner.setPadding(32, 16, 32, 0);
 
-        // 2. Создаём контейнер для списка папок
-        ScrollView scrollView = new ScrollView(context);
-        LinearLayout layout = new LinearLayout(context);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(32, 8, 32, 16);
-        scrollView.addView(layout);
-
-        // 3. Функция для обновления списка папок при смене хранилища
         Runnable updateFolderList = () -> {
-            layout.removeAllViews();
-            StorageRoot currentRoot = (StorageRoot) storageSpinner.getSelectedItem();
-            if (currentRoot == null) return;
+            layoutFoldersList.removeAllViews();
 
+            if (storageSpinner.getSelectedItem() == null) return;
+
+            StorageRoot currentRoot = (StorageRoot) storageSpinner.getSelectedItem();
             File currentDir = new File(currentRoot.path);
             File[] folders = getFoldersInDirectory(currentDir);
-            List<CheckBox> checkBoxes = new ArrayList<>();
 
             if (folders != null && folders.length > 0) {
                 for (File folder : folders) {
-                    CheckBox checkBox = new CheckBox(context);
-                    checkBox.setText(folder.getName());
-                    checkBox.setTextSize(15);
+                    com.google.android.material.checkbox.MaterialCheckBox checkBox =
+                            new com.google.android.material.checkbox.MaterialCheckBox(context);
+
                     final String currentFolderPath = folder.getAbsolutePath();
+
+                    checkBox.setText(folder.getName());
+                    checkBox.setTextColor(ContextCompat.getColor(context, R.color.text_primary));
+                    checkBox.setTextSize(16f);
+                    checkBox.setPadding(16, 16, 16, 16);
                     checkBox.setTag(currentFolderPath);
-                    if (selectedPathsSet.contains(currentFolderPath)) {
-                        checkBox.setChecked(true);
-                    }
+
+                    checkBox.setChecked(selectedPathsSet.contains(currentFolderPath));
 
                     checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                         @Override
@@ -184,17 +180,19 @@ public class SimpleFolderPickerDialog {
                         }
                     });
 
-                    layout.addView(checkBox);
+                    layoutFoldersList.addView(checkBox);
                 }
             } else {
-                TextView empty = new TextView(context);
-                empty.setText("Папки не найдены или нет доступа");
-                empty.setPadding(0, 20, 0, 20);
-                layout.addView(empty);
+                TextView emptyText = new TextView(context);
+                emptyText.setText("Папки не найдены или нет доступа");
+                emptyText.setTextColor(ContextCompat.getColor(context, R.color.text_secondary));
+                emptyText.setGravity(Gravity.CENTER);
+                emptyText.setPadding(0, 40, 0, 40);
+                layoutFoldersList.addView(emptyText);
             }
         };
 
-        // Слушатель переключения хранилища
+        // Слушатель смены хранилища
         storageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -204,43 +202,29 @@ public class SimpleFolderPickerDialog {
             public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        // Собираем верхнюю панель (заголовок + спиннер)
-        LinearLayout header = new LinearLayout(context);
-        header.setOrientation(LinearLayout.VERTICAL);
-        TextView titleText = new TextView(context);
-        titleText.setText("Выберите хранилище:");
-        titleText.setPadding(32, 16, 32, 4);
-        titleText.setTextSize(14);
-        header.addView(titleText);
-        header.addView(storageSpinner);
+        SpannableString orangeTitle = new SpannableString("📁 Выбор папок");
+        orangeTitle.setSpan(
+                new ForegroundColorSpan(ContextCompat.getColor(context, R.color.accent_orange)),
+                0,
+                orangeTitle.length(),
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+        );
 
-        // 6. Финальная сборка диалога
-        LinearLayout mainLayout = new LinearLayout(context);
-        mainLayout.setOrientation(LinearLayout.VERTICAL);
-        mainLayout.addView(header);
-        mainLayout.addView(scrollView);
-
-        new AlertDialog.Builder(context)
-                .setTitle("📁 Выбор папок")
-                .setView(mainLayout)
-                .setPositiveButton("ГОТОВО", (dialog, which) -> {
-                    //List<String> selected = new ArrayList<>();
-                    // Проходимся по всем чекбоксам в текущем списке
-//                    for (int i = 0; i < layout.getChildCount(); i++) {
-//                        View child = layout.getChildAt(i);
-//                        if (child instanceof CheckBox && ((CheckBox) child).isChecked()) {
-//                            selected.add((String) child.getTag());
-//                        }
-//                    }
+        // 2. Создаём диалог
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+                .setTitle(orangeTitle)
+                .setView(dialogView)
+                .setPositiveButton("Добавить выбранное", (dialog, which) -> {
                     if (listener != null) {
                         listener.onFoldersSelected(new ArrayList<>(selectedPathsSet));
                     }
                 })
                 .setNegativeButton("Отмена", null)
                 .show();
-
-        // Инициализируем список для первого хранилища
-        storageSpinner.setSelection(0);
+        // Инициализация
+        if (availableRoots.size() > 0) {
+            storageSpinner.setSelection(0);
+        }
         updateFolderList.run();
     }
 

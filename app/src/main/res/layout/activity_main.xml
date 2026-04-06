@@ -1,44 +1,96 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:background="@drawable/bg_main_gradient"
+    android:padding="24dp"
+    android:gravity="center_horizontal">
 
     <TextView
-        android:layout_width="match_parent"
+        android:id="@+id/tv_title"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:layout_marginBottom="8dp"
         android:text="Моя медиатека"
-        android:textSize="24sp"
+        android:textColor="@color/text_primary"
+        android:textSize="28sp"
         android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
-    <Button
-        android:id="@+id/btn_select_folders"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Добавить папку" />
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.05" />
 
     <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Выберите папки с музыкой"
+        android:textColor="@color/text_secondary"
+        android:textSize="16sp"
+        android:layout_marginBottom="40dp" />
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Выбранные папки:"
-        android:textStyle="bold"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="8dp" />
+        android:orientation="vertical"
+        android:gravity="center"
+        android:layout_marginBottom="30dp">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_selected_folders"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_select_folders"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Добавить папки"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:letterSpacing="0.02"
+            android:layout_marginBottom="16dp"
+            app:cornerRadius="16dp"
+            app:backgroundTint="@color/accent_orange"
+            app:rippleColor="@color/accent_orange_variant"
+            android:textColor="@color/bg_main"
+            app:icon="@android:drawable/ic_menu_add"
+            app:iconTint="@color/bg_main"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_start_scan"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="Начать сканирование"
+            android:textSize="16sp"
+            android:textAllCaps="false"
+            android:enabled="false"
+            app:cornerRadius="16dp"
+            app:strokeColor="@color/accent_orange"
+            app:strokeWidth="2dp"
+            app:backgroundTint="@android:color/transparent"
+            android:textColor="@color/accent_orange"
+            app:icon="@android:drawable/ic_media_play"
+            app:iconTint="@color/accent_orange"
+            app:iconGravity="textStart"
+            app:iconPadding="8dp"/>
+    </LinearLayout>
+
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_marginBottom="16dp" />
+        app:cardBackgroundColor="@color/surface_color"
+        app:cardCornerRadius="24dp"
+        app:strokeColor="@color/divider_color"
+        app:strokeWidth="1dp"
+        app:cardElevation="8dp">
 
-    <Button
-        android:id="@+id/btn_start_scan"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Начать сканирование"
-        android:enabled="false" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_selected_folders"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="8dp"
+            android:clipToPadding="false" />
+
+    </com.google.android.material.card.MaterialCardView>
 
 </LinearLayout>

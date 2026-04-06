@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="bg_main">#121212</color>
+
+    <color name="surface_color">#1E1E24</color>
+
+    <color name="accent_orange">#FF9100</color>
+    <color name="accent_orange_variant">#FFB74D</color>
+
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B0B0B0</color>
+
+    <color name="divider_color">#333333</color>
 </resources>
