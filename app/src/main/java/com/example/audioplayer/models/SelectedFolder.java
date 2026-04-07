@@ -1,4 +1,4 @@
-package com.example.audioplayer;
+package com.example.audioplayer.models;
 
 public class SelectedFolder {
     private String uriString;

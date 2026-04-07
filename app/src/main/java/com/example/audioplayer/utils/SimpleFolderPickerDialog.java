@@ -1,6 +1,5 @@
-package com.example.audioplayer;
+package com.example.audioplayer.utils;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.os.Build;
 import android.os.storage.StorageManager;
@@ -13,14 +12,14 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
+
+import com.example.audioplayer.R;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -127,7 +126,6 @@ public class SimpleFolderPickerDialog {
             Method getPath = StorageVolume.class.getMethod("getPath");
             return (String) getPath.invoke(volume);
         } catch (Exception e) {
-            // Попробуем получить через Directory
             try {
                 File dir = volume.getDirectory();
                 if (dir != null) return dir.getAbsolutePath();

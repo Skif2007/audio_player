@@ -47,31 +47,17 @@
             android:letterSpacing="0.02"
             android:layout_marginBottom="16dp"
             app:cornerRadius="16dp"
-            app:backgroundTint="@color/accent_orange"
-            app:rippleColor="@color/accent_orange_variant"
-            android:textColor="@color/bg_main"
-            app:icon="@android:drawable/ic_menu_add"
-            app:iconTint="@color/bg_main"
-            app:iconGravity="textStart"
-            app:iconPadding="8dp"/>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_start_scan"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:text="Начать сканирование"
-            android:textSize="16sp"
-            android:textAllCaps="false"
-            android:enabled="false"
-            app:cornerRadius="16dp"
             app:strokeColor="@color/accent_orange"
             app:strokeWidth="2dp"
+            app:icon="@android:drawable/ic_menu_add"
+            app:iconPadding="8dp"
             app:backgroundTint="@android:color/transparent"
             android:textColor="@color/accent_orange"
-            app:icon="@android:drawable/ic_media_play"
+            app:rippleColor="@color/accent_orange_variant"
             app:iconTint="@color/accent_orange"
-            app:iconGravity="textStart"
-            app:iconPadding="8dp"/>
+            app:iconGravity="textStart"/>
+
+
     </LinearLayout>
 
     <com.google.android.material.card.MaterialCardView
@@ -92,5 +78,25 @@
             android:clipToPadding="false" />
 
     </com.google.android.material.card.MaterialCardView>
-
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_start_scan"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="Начать сканирование"
+        android:textSize="16sp"
+        android:textAllCaps="false"
+        android:enabled="false"
+        app:cornerRadius="16dp"
+        android:letterSpacing="0.02"
+        android:layout_marginBottom="16dp"
+        app:strokeColor="@color/accent_orange"
+        app:strokeWidth="2dp"
+        app:backgroundTint="@android:color/transparent"
+        android:textColor="@color/accent_orange"
+        app:rippleColor="@color/accent_orange_variant"
+        app:icon="@android:drawable/ic_media_play"
+        app:iconTint="@color/accent_orange"
+        app:iconGravity="textStart"
+        app:iconPadding="8dp"
+        />
 </LinearLayout>

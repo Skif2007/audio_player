@@ -21,6 +21,10 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.audioplayer.adapters.FoldersAdapter;
+import com.example.audioplayer.models.SelectedFolder;
+import com.example.audioplayer.utils.SimpleFolderPickerDialog;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;

@@ -1,4 +1,4 @@
-package com.example.audioplayer;
+package com.example.audioplayer.adapters;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,6 +7,10 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.audioplayer.R;
+import com.example.audioplayer.models.SelectedFolder;
+
 import java.util.ArrayList;
 import java.util.List;
 
