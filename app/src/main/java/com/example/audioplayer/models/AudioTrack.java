@@ -4,14 +4,14 @@ public class AudioTrack {
     private String filePath;
     private String title;
     private String artist;
-    private String albumArtUri;
+    private String albumArtFileName;
 
     public AudioTrack(String filePath, String title,
                       String artist, String albumArtUri){
         this.filePath = filePath;
         this.title = title;
         this.artist = artist;
-        this.albumArtUri = albumArtUri;
+        this.albumArtFileName = albumArtUri;
     }
 
     public String getTitle(){
@@ -23,8 +23,8 @@ public class AudioTrack {
     public String getArtist(){
         return artist;
     }
-    public String getAlbumArtUri(){
-        return albumArtUri;
+    public String getAlbumArtFileName(){
+        return albumArtFileName;
     }
 
     public void setTitle(String title){
@@ -36,7 +36,7 @@ public class AudioTrack {
     public void setFilePath(String filePath){
         this.filePath = filePath;
     }
-    public void setAlbumArtUri(String albumArtUri){
-        this.albumArtUri = albumArtUri;
+    public void setAlbumArtFileName(String albumArtFileName){
+        this.albumArtFileName = albumArtFileName;
     }
 }

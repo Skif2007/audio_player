@@ -75,7 +75,7 @@ public class Mp3Scanner {
         /*Извлекаем метаданные из файла*/
         MediaMetadataRetriever retriver = new MediaMetadataRetriever();
         try{
-            retriver.setDataSource(file.getAbsolutePath());
+            retriver.setDataSource(context, Uri.fromFile(file));
             String title = retriver.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
             if(title == null || title.isEmpty()){
                 title = file.getName();
@@ -99,8 +99,11 @@ public class Mp3Scanner {
             return null;
         }
         finally{
-            // вот тут жалуется подправить
-            retriver.release();
+            try {
+                retriver.release();
+            } catch (Exception e) {
+                //добавить обработку
+            }
         }
     }
 
@@ -111,7 +114,7 @@ public class Mp3Scanner {
             FileOutputStream fos = context.openFileOutput(artFileName, Context.MODE_PRIVATE);
             fos.write(artBytes);
             fos.close();
-            return Uri.fromFile(new File(context.getFilesDir(), artFileName)).toString();
+            return artFileName;
         }
         catch(Exception e) {
             //Подумать может доработать

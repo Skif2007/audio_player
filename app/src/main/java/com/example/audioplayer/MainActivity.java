@@ -1,5 +1,4 @@
 package com.example.audioplayer;
-// TODO: добавить возможность заходить внутрь папок, улучшить визуал, добавить анимации
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
@@ -93,7 +92,8 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Сначала выберите хотя бы одну папку", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "Начинаем сканирование " + getSelectedFoldersSet().size() + " папок", Toast.LENGTH_SHORT).show();
-                // TODO: Логика сканирования
+                Intent intent = new Intent(MainActivity.this, TracksActivity.class);
+                startActivity(intent);
             }
         });
 
