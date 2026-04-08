@@ -1,6 +1,7 @@
 package com.example.audioplayer.utils;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -8,6 +9,7 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.example.audioplayer.models.AudioTrack;
+import com.google.gson.Gson;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -120,5 +122,24 @@ public class Mp3Scanner {
             //Подумать может доработать
             return null;
         }
+    }
+
+    public static void saveTracksToPrefs(Context context, List<AudioTrack> tracks){
+        /*Сохраняем список треков в json-формате в настройки*/
+        Gson gson = new Gson();
+        String json = gson.toJson(tracks);
+        SharedPreferences prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        prefs.edit().putString("saved_tracks_json", json).apply();
+    }
+
+    public static List<AudioTrack> loadTracksFromPrefs(Context context){
+        SharedPreferences prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        String json = prefs.getString("saved_tracks_json", null);
+        if(json == null || json.isEmpty()){
+            return new ArrayList<>();
+        }
+        Gson gson = new Gson();
+        return gson.fromJson(json,
+                new com.google.gson.reflect.TypeToken<List<AudioTrack>>(){}.getType());
     }
 }

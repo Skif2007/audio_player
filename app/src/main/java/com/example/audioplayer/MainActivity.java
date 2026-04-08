@@ -21,7 +21,9 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.audioplayer.adapters.FoldersAdapter;
+import com.example.audioplayer.models.AudioTrack;
 import com.example.audioplayer.models.SelectedFolder;
+import com.example.audioplayer.utils.Mp3Scanner;
 import com.example.audioplayer.utils.SimpleFolderPickerDialog;
 
 import java.io.File;
@@ -46,6 +48,16 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        List<AudioTrack> savedTracks = Mp3Scanner.loadTracksFromPrefs(this);
+
+        if (!savedTracks.isEmpty()) {
+            Intent intent = new Intent(MainActivity.this, TracksActivity.class);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         setContentView(R.layout.activity_main);
 
         btnSelectFolders = findViewById(R.id.btn_select_folders);

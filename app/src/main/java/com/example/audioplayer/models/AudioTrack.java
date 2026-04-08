@@ -14,6 +14,8 @@ public class AudioTrack {
         this.albumArtFileName = albumArtUri;
     }
 
+    public AudioTrack() { }
+
     public String getTitle(){
         return title;
     }

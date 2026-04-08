@@ -56,6 +56,15 @@ public class TracksActivity extends AppCompatActivity {
             });
 
             rvTracks.setAdapter(adapter);
+            List<AudioTrack> savedTracks = Mp3Scanner.loadTracksFromPrefs(this);
+            if (!savedTracks.isEmpty()) {
+                progressBar.setVisibility(View.GONE);
+                tvStatus.setVisibility(View.GONE);
+                rvTracks.setVisibility(View.VISIBLE);
+                adapter.updateTracks(savedTracks);
+                return;
+
+            }
             startScanning();
         }
 
@@ -81,6 +90,7 @@ public class TracksActivity extends AppCompatActivity {
                     tvStatus.setVisibility(View.GONE);
                     rvTracks.setVisibility(View.VISIBLE);
                     adapter.updateTracks(tracks);
+                    Mp3Scanner.saveTracksToPrefs(TracksActivity.this, tracks);
 
                     Toast.makeText(TracksActivity.this, "Найдено: " + tracks.size() + " треков", Toast.LENGTH_SHORT).show();
 
