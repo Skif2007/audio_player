@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:checkableBehavior="none">
+        <item
+            android:id="@+id/menu_item_1"
+            android:title="пункт 1" />
+        <item
+            android:id="@+id/menu_item_2"
+            android:title="пункт 2" />
+        <item
+            android:id="@+id/menu_item_3"
+            android:title="пункт 3" />
+    </group>
+</menu>

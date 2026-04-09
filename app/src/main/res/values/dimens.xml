@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="tab_indicator_start_songs">80dp</dimen>
+
+    <dimen name="tab_indicator_start_playlists">176dp</dimen>
+</resources>

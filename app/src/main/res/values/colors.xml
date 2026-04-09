@@ -11,4 +11,9 @@
     <color name="text_secondary">#B0B0B0</color>
 
     <color name="divider_color">#333333</color>
+
+    <color name="tab_text_selected">#FF000000</color>
+    <color name="tab_text_unselected">#FF9E9E9E</color>
+    <color name="tab_indicator">#FF2196F3</color>
+    <color name="tab_indicator_unselected">#402196F3</color>
 </resources>
