@@ -15,7 +15,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.audioplayer.R;
 import com.example.audioplayer.models.AudioTrack;
-import com.example.audioplayer.utils.Mp3Scanner;
 
 import java.io.File;
 import java.util.List;
