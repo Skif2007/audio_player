@@ -19,6 +19,8 @@ import java.util.List;
 public class Mp3Scanner {
     private Context context;
     private OnScanCompleteListener listener;
+    private int errorCount = 0;
+
 
     public interface OnScanCompleteListener {
         void onScanComplete(List<AudioTrack> tracks);
@@ -42,7 +44,7 @@ public class Mp3Scanner {
                     if(dir.exists() && dir.isDirectory()){
                         scanDirectoryRecursive(dir, foundTracks);
                     }
-                    //обработка ошибки нужна тост например
+                    else android.util.Log.w("Mp3Scanner", "Directory not found: " + dirPath);
                 }
                 new Handler(Looper.getMainLooper()).post(new Runnable(){
                     @Override
@@ -77,7 +79,7 @@ public class Mp3Scanner {
         /*Извлекаем метаданные из файла*/
         MediaMetadataRetriever retriver = new MediaMetadataRetriever();
         try{
-            retriver.setDataSource(context, Uri.fromFile(file));
+            retriver.setDataSource(file.getAbsolutePath()); //retriver.setDataSource(context, Uri.fromFile(file));
             String title = retriver.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE);
             if(title == null || title.isEmpty()){
                 title = file.getName();
@@ -97,29 +99,30 @@ public class Mp3Scanner {
             return new AudioTrack(file.getAbsolutePath(), title, artist, artUri);
         }
         catch (Exception e) {
-            //трек будет пропущен, подумать нужно ли менять
+            android.util.Log.w("Mp3Scanner", "Failed to extract metadata: " + file.getName(), e);
+            errorCount++;
             return null;
         }
         finally{
             try {
                 retriver.release();
-            } catch (Exception e) {
-                //добавить обработку
             }
+            catch (Exception e) {
+                android.util.Log.e("Mp3Scanner", "Failed to release retriever", e);            }
         }
     }
 
-    private String saveArtToInternalStorage(String filename, byte[] artBytes){
+    private String saveArtToInternalStorage(String filename, byte[] art){
         /*Сохраняем обложку во внутреннюю память приложения*/
         try {
-            String artFileName = "cover_" + filename.hashCode() + ".jpg";
+            String uniqueId = filename.hashCode() + "_" + System.currentTimeMillis();
+            String artFileName = "cover_" + uniqueId + ".jpg";
             FileOutputStream fos = context.openFileOutput(artFileName, Context.MODE_PRIVATE);
-            fos.write(artBytes);
+            fos.write(art);
             fos.close();
             return artFileName;
-        }
-        catch(Exception e) {
-            //Подумать может доработать
+        } catch (Exception e) {
+            android.util.Log.e("Mp3Scanner", "Save art failed: " + e.getMessage());
             return null;
         }
     }
@@ -141,5 +144,9 @@ public class Mp3Scanner {
         Gson gson = new Gson();
         return gson.fromJson(json,
                 new com.google.gson.reflect.TypeToken<List<AudioTrack>>(){}.getType());
+    }
+
+    public String getScanStats() {
+        return "Ошибок: " + errorCount;
     }
 }

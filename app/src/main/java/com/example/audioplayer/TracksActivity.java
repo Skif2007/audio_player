@@ -22,7 +22,9 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.audioplayer.adapters.TracksAdapter;
 import com.example.audioplayer.models.AudioTrack;
+import com.example.audioplayer.utils.MiniPlayerPanel;
 import com.example.audioplayer.utils.Mp3Scanner;
+import com.example.audioplayer.utils.PlaybackManager;
 import com.google.android.material.navigation.NavigationView;
 
 import java.util.ArrayList;
@@ -53,19 +55,35 @@ public class TracksActivity extends AppCompatActivity {
             super.onCreate(savedInstanceState);
             setContentView(R.layout.activity_tracks);
 
+            PlaybackManager.getInstance().init(this);
+            PlaybackManager.getInstance().bindService();
+            MiniPlayerPanel miniPlayer = findViewById(R.id.miniPlayerPanel);
+            miniPlayer.setOnMiniPlayerClickListener(track -> {
+                // TODO: Открыть полноэкранный плеер (PlayerActivity или Dialog)
+                Toast.makeText(this, "Открываем плеер для: " + track.getTitle(), Toast.LENGTH_SHORT).show();
+
+            });
+
+            if (PlaybackManager.getInstance().isReady()) {
+                AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
+                if (current != null) {
+                    miniPlayer.updateTrackInfo(current);
+                    miniPlayer.showPanel();
+                }
+            }
+
             drawerLayout = findViewById(R.id.drawerLayout);
             navigationView = findViewById(R.id.navigationView);
             headerPanel = findViewById(R.id.headerPanel);
 
             navigationView.setNavigationItemSelectedListener(item -> {
-                // Обработчик кликов по пунктам меню
                 int id = item.getItemId();
                 if (id == R.id.menu_item_1) {
-                    Toast.makeText(this, "Нажат пункт 1", Toast.LENGTH_SHORT).show();
+                    showToast("Пункт 1: в разработке");
                 } else if (id == R.id.menu_item_2) {
-                    Toast.makeText(this, "Нажат пункт 2", Toast.LENGTH_SHORT).show();
+                    showToast("Пункт 2: в разработке");
                 } else if (id == R.id.menu_item_3) {
-                    Toast.makeText(this, "Нажат пункт 3", Toast.LENGTH_SHORT).show();
+                    showToast("Пункт 3: в разработке");
                 }
                 drawerLayout.closeDrawers();
                 return true;
@@ -113,10 +131,9 @@ public class TracksActivity extends AppCompatActivity {
             adapter = new TracksAdapter(this, emptyList, new TracksAdapter.OnTrackMenuClickListener() {
                 @Override
                 public void onMenuClick(AudioTrack track, View anchorView) {
-                    Toast.makeText(TracksActivity.this, "Меню для: " + track.getTitle(), Toast.LENGTH_SHORT).show();
-                    // TODO: Здесь потом добавим код для показа PopupMenu с действиями (играть, удалить, информация и т.д.)
+                    // TODO: Реализовать PopupMenu с действиями: играть, добавить в плейлист, инфо
+                    showToast("Меню: " + track.getTitle());
                 }
-
             });
 
             rvTracks.setAdapter(adapter);
@@ -168,15 +185,18 @@ public class TracksActivity extends AppCompatActivity {
         @Override
         protected void onDestroy() {
             super.onDestroy();
+            PlaybackManager.getInstance().unbindService();
         }
+
     private void switchTab(boolean songsSelected) {
+            /*Переключает визуальное состояние вкладок. */
         if (isSongsTabActive == songsSelected) return;
         isSongsTabActive = songsSelected;
-        animateIndicator(songsSelected);
 
+        animateIndicator(songsSelected);
         updateTabStyles(songsSelected);
 
-        // TODO: здесь позже добавить логику переключения контента
+        // TODO: Добавить переключение контента при реализации плейлистов/настроек
     }
 
     private void updateTabStyles(boolean songsSelected) {
@@ -236,6 +256,13 @@ public class TracksActivity extends AppCompatActivity {
             widthAnimator.start();
         });
     }
+
+    private void showToast(String message) {
+        runOnUiThread(() ->
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        );
+    }
+
 }
 
 

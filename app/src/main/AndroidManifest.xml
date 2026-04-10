@@ -43,6 +43,11 @@
             android:parentActivityName=".MainActivity"
             android:theme="@style/Theme.AudioPlayer" />
 
+        <service
+            android:name=".services.AudioPlayerService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback"/>
 
     </application>
 

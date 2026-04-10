@@ -3,4 +3,5 @@
     <dimen name="tab_indicator_start_songs">80dp</dimen>
 
     <dimen name="tab_indicator_start_playlists">176dp</dimen>
+    <dimen name="top_rounded_corner_radius">16dp</dimen>
 </resources>

@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.audioplayer.R;
 import com.example.audioplayer.models.AudioTrack;
+import com.example.audioplayer.utils.PlaybackManager;
 
 import java.io.File;
 import java.util.List;
@@ -53,31 +54,16 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
         holder.tvTitle.setText(track.getTitle());
         holder.tvArtist.setText(track.getArtist());
 
-        if (track.getAlbumArtFileName() != null) {
-            File artFile = new File(context.getFilesDir(), track.getAlbumArtFileName());
-            if (artFile.exists()) {
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inPreferredConfig = Bitmap.Config.RGB_565;
-                Bitmap bitmap = BitmapFactory.decodeFile(artFile.getAbsolutePath());
-                if (bitmap != null) {
-                    holder.ivCover.setImageBitmap(bitmap);
-                }
-                else holder.ivCover.setImageResource(R.drawable.ic_placeholder_cover);
+        loadAlbumArtAsync(track.getAlbumArtFileName(), holder.ivCover);
+        holder.btnMenu.setOnClickListener(v -> {
+            if (menuClickListener != null) {
+                menuClickListener.onMenuClick(track, v);
             }
-            else {
-                holder.ivCover.setImageResource(R.drawable.ic_placeholder_cover);
-            }
-        }
-        else holder.ivCover.setImageResource(R.drawable.ic_placeholder_cover);
-        holder.btnMenu.setOnClickListener(new View.OnClickListener() {
+        });
 
-            @Override
-            public void onClick(View v) {
-                if (menuClickListener != null) {
-                    menuClickListener.onMenuClick(track, v);
-
-                }
-            }
+        holder.itemView.setOnClickListener(v -> {
+            PlaybackManager.getInstance().playTrack(track);
+            // подсветить играющий трек в списке
         });
     }
     @Override
@@ -100,4 +86,30 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
         }
 
     }
+
+
+    private void loadAlbumArtAsync(String artFileName, ImageView imageView) {
+        /*Асинхронная загрузка обложки трека.*/
+        imageView.setImageResource(R.drawable.ic_placeholder_cover);
+
+        if (artFileName == null || artFileName.isEmpty()) return;
+
+        new Thread(() -> {
+            File artFile = new File(context.getFilesDir(), artFileName);
+            if (!artFile.exists()) return;
+
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            options.inSampleSize = 2;
+
+            Bitmap bitmap = BitmapFactory.decodeFile(artFile.getAbsolutePath(), options);
+
+            if (bitmap != null) {
+                new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                        imageView.setImageBitmap(bitmap)
+                );
+            }
+        }).start();
+    }
+
 }
