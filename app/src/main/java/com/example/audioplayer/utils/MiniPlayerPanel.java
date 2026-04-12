@@ -33,12 +33,23 @@ public class MiniPlayerPanel extends FrameLayout {
 
     private AudioTrack currentTrack;
     private boolean isBoundToService = false;
+    private OnMiniPlayerListener externalListener;
+
+    public void setOnMiniPlayerListener(OnMiniPlayerListener listener) {
+        this.externalListener = listener;
+    }
 
     private OnMiniPlayerClickListener clickListener;
 
     public interface OnMiniPlayerClickListener {
         void onMiniPlayerClicked(AudioTrack track);
     }
+
+    public interface OnMiniPlayerListener {
+        void onTrackClicked(AudioTrack track);
+        void onTrackCompleted();
+    }
+
 
     public MiniPlayerPanel(@NonNull Context context) {
         this(context, null);
@@ -97,8 +108,14 @@ public class MiniPlayerPanel extends FrameLayout {
             public void onTrackChanged(AudioTrack track) {
                 updateTrackInfo(track);
             }
-        };
 
+            @Override
+            public void onTrackCompleted() {
+                if (externalListener != null) {
+                    externalListener.onTrackCompleted();
+                }
+            }
+        };
         PlaybackManager.getInstance().setUiListener(listener);
     }
 
@@ -140,13 +157,12 @@ public class MiniPlayerPanel extends FrameLayout {
         }).start();
     }
 
-    private void updatePlayPauseIcon(boolean isPlaying) {
+    public void updatePlayPauseIcon(boolean isPlaying) {
         ivPlayPauseIcon.setImageResource(
                 isPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play
         );
         btnProgress.setPlaying(isPlaying);
     }
-
     public void showPanel() {
         setVisibility(VISIBLE);
     }

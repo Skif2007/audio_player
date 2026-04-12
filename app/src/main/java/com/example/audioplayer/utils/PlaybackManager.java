@@ -27,6 +27,8 @@ public class PlaybackManager {
     private AudioPlayerService playerService;
     private boolean isBound = false;
     private Context appContext;
+    private long lastPlayRequestTime = 0;
+    private static final long MIN_PLAY_INTERVAL_MS = 150;
 
     // Слушатели для обновления UI в разных активностях
     private AudioPlayerService.OnPlaybackListener uiListener;
@@ -82,13 +84,20 @@ public class PlaybackManager {
     };
 
     public void playTrack(@NonNull AudioTrack track) {
-        if (playerService != null) {
-            playerService.loadTrack(track);
-            playerService.play();
-        } else {
-            Log.w(TAG, "Service not bound, binding now...");
+        if (playerService == null) {
             bindService();
+            return;
         }
+        AudioTrack current = playerService.getCurrentTrack();
+        if (current != null &&
+                current.getFilePath() != null &&
+                current.getFilePath().equals(track.getFilePath()) &&
+                playerService.isPlaying()) {
+            return;
+        }
+
+        playerService.loadTrack(track);
+        playerService.play();
     }
 
     public void togglePlayback() {

@@ -9,7 +9,7 @@
     app:cardElevation="0dp"
     app:cardUseCompatPadding="false"
     app:shapeAppearanceOverlay="@style/ShapeAppearanceOverlay.TopRounded"
-    app:cardBackgroundColor="#991A1A1A"
+    app:cardBackgroundColor="#9999DCD7"
     android:clickable="true"
     android:focusable="true"
     android:background="?attr/selectableItemBackground"

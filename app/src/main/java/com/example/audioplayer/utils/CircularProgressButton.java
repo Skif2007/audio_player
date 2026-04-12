@@ -132,8 +132,6 @@ public class CircularProgressButton extends View {
     public void animateProgress(float targetFraction, long duration) {
         targetFraction = Math.max(0f, Math.min(1f, targetFraction));
         final float targetDegrees = targetFraction * 360f;
-
-        // Если вызвали из фонового потока — перекидываем в UI
         if (Looper.myLooper() != Looper.getMainLooper()) {
             mainHandler.post(() -> startAngleAnimation(targetDegrees, duration));
         } else {

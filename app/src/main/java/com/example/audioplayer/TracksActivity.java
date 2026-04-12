@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.audioplayer.adapters.TracksAdapter;
 import com.example.audioplayer.models.AudioTrack;
+import com.example.audioplayer.services.AudioPlayerService;
 import com.example.audioplayer.utils.MiniPlayerPanel;
 import com.example.audioplayer.utils.Mp3Scanner;
 import com.example.audioplayer.utils.PlaybackManager;
@@ -58,10 +59,31 @@ public class TracksActivity extends AppCompatActivity {
             PlaybackManager.getInstance().init(this);
             PlaybackManager.getInstance().bindService();
             MiniPlayerPanel miniPlayer = findViewById(R.id.miniPlayerPanel);
-            miniPlayer.setOnMiniPlayerClickListener(track -> {
-                // TODO: Открыть полноэкранный плеер (PlayerActivity или Dialog)
-                Toast.makeText(this, "Открываем плеер для: " + track.getTitle(), Toast.LENGTH_SHORT).show();
 
+            miniPlayer.setOnMiniPlayerClickListener(track -> {
+                Toast.makeText(this, "Открываем плеер: " + track.getTitle(), Toast.LENGTH_SHORT).show();
+            });
+
+            miniPlayer.setOnMiniPlayerListener(new MiniPlayerPanel.OnMiniPlayerListener() {
+                @Override
+                public void onTrackClicked(AudioTrack track) {}
+
+                @Override
+                public void onTrackCompleted() {
+                    AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
+                    List<AudioTrack> tracks = adapter.getCurrentTracks();
+
+                    if (current != null && tracks != null) {
+                        for (int i = 0; i < tracks.size(); i++) {
+                            if (tracks.get(i).getFilePath().equals(current.getFilePath())) {
+                                if (i < tracks.size() - 1) {
+                                    PlaybackManager.getInstance().playTrack(tracks.get(i + 1));
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
             });
 
             if (PlaybackManager.getInstance().isReady()) {
@@ -262,6 +284,7 @@ public class TracksActivity extends AppCompatActivity {
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         );
     }
+
 
 }
 

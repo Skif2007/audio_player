@@ -40,6 +40,9 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
         notifyDataSetChanged();
 
     }
+    public List<AudioTrack> getCurrentTracks() {
+        return tracks;
+    }
 
     @NonNull
     @Override

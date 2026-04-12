@@ -35,7 +35,8 @@ public class AudioPlayerService extends Service {
     private static final String TAG = "AudioPlayerService";
     private static final String CHANNEL_ID = "audio_player_channel";
     private static final int NOTIFICATION_ID = 1;
-
+    private enum PlayerState { IDLE, PREPARING, READY, PLAYING, ERROR }
+    private PlayerState playerState = PlayerState.IDLE;
     private final IBinder binder = new LocalBinder();
     private MediaPlayer mediaPlayer;
     private AudioTrack currentTrack;
@@ -45,12 +46,11 @@ public class AudioPlayerService extends Service {
         void onPlaybackStateChanged(boolean isPlaying);
         void onProgressUpdated(int currentPosition, int duration);
         void onTrackChanged(AudioTrack track);
+        void onTrackCompleted();
     }
     private OnPlaybackListener playbackListener;
 
-    /**
-     * Binder для связи Activity с Service
-     */
+
     public class LocalBinder extends Binder {
         public AudioPlayerService getService() {
             return AudioPlayerService.this;
@@ -68,26 +68,28 @@ public class AudioPlayerService extends Service {
         setupMediaPlayerListeners();
     }
 
-    /**
-     * Настройка слушателей MediaPlayer
-     */
+
     private void setupMediaPlayerListeners() {
         mediaPlayer.setOnPreparedListener(mp -> {
-            isPrepared = true;
-            // Автозапуск после подготовки (опционально)
-            // mediaPlayer.start();
-        });
-
-        mediaPlayer.setOnCompletionListener(mp -> {
-            // Трек закончился — можно перейти к следующему
-            if (playbackListener != null) {
-                playbackListener.onPlaybackStateChanged(false);
+            if (playerState == PlayerState.PREPARING) {
+                playerState = PlayerState.READY;
             }
         });
-
+        mediaPlayer.setOnCompletionListener(mp -> {
+            playerState = PlayerState.IDLE;
+            isPrepared = false;
+            stopProgressUpdates();
+            if (playbackListener != null) {
+                playbackListener.onPlaybackStateChanged(false);
+                playbackListener.onTrackCompleted();
+            }
+        });
         mediaPlayer.setOnErrorListener((mp, what, extra) -> {
-            Log.e(TAG, "Ошибка воспроизведения: what=" + what + ", extra=" + extra);
-            return false;
+            Log.e(TAG, "MediaPlayer error: " + what);
+            playerState = PlayerState.ERROR;
+            isPrepared = false;
+            stopProgressUpdates();
+            return true;
         });
     }
 
@@ -110,31 +112,38 @@ public class AudioPlayerService extends Service {
     }
 
     public void loadTrack(AudioTrack track) {
-        if (track == null || track.getFilePath() == null) {
-            Log.e(TAG, "Некорректный трек");
-            return;
-        }
+        if (track == null || track.getFilePath() == null) return;
 
-        try {
-            if (mediaPlayer.isPlaying()) {
-                mediaPlayer.stop();
+        synchronized (this) {
+            try {
+                stopProgressUpdates();
+
+                if (mediaPlayer.isPlaying()) {
+                    mediaPlayer.stop();
+                }
+                mediaPlayer.reset();
+
+                isPrepared = false;
+                playerState = PlayerState.PREPARING;
+                currentTrack = track;
+
+                mediaPlayer.setDataSource(track.getFilePath());
+                mediaPlayer.prepare();
+
+                isPrepared = true;
+                playerState = PlayerState.READY;
+
+                if (playbackListener != null) {
+                    playbackListener.onTrackChanged(track);
+                }
+                showNotification(track);
+
+            } catch (IllegalStateException | IOException e) {
+                Log.e(TAG, "Failed to load track", e);
+                playerState = PlayerState.ERROR;
+                isPrepared = false;
+                try { mediaPlayer.reset(); } catch (Exception ignored) {}
             }
-            mediaPlayer.reset();
-            mediaPlayer.setDataSource(track.getFilePath());
-            mediaPlayer.prepareAsync();
-
-            currentTrack = track;
-            isPrepared = false;
-
-            if (playbackListener != null) {
-                playbackListener.onTrackChanged(track);
-            }
-
-            showNotification(track);
-
-        }
-        catch (IOException e) {
-            Log.e(TAG, "Ошибка загрузки трека: " + track.getFilePath(), e);
         }
     }
 
@@ -161,11 +170,17 @@ public class AudioPlayerService extends Service {
 
 
     public void play() {
-        if (isPrepared && !mediaPlayer.isPlaying()) {
-            mediaPlayer.start();
-            startProgressUpdates();
-            if (playbackListener != null) {
-                playbackListener.onPlaybackStateChanged(true);
+        if (!isPrepared || playerState != PlayerState.READY) {
+            return;
+        }
+        synchronized (this) {
+            if (!mediaPlayer.isPlaying()) {
+                mediaPlayer.start();
+                playerState = PlayerState.PLAYING;
+                startProgressUpdates();
+                if (playbackListener != null) {
+                    playbackListener.onPlaybackStateChanged(true);
+                }
             }
         }
     }
@@ -173,7 +188,7 @@ public class AudioPlayerService extends Service {
     public void pause() {
         if (mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
-            stopProgressUpdates();
+            playerState = PlayerState.READY;
             if (playbackListener != null) {
                 playbackListener.onPlaybackStateChanged(false);
             }
@@ -203,18 +218,27 @@ public class AudioPlayerService extends Service {
     private volatile boolean shouldUpdateProgress = false;
 
     private void startProgressUpdates() {
+        stopProgressUpdates();
+
         shouldUpdateProgress = true;
         progressThread = new Thread(() -> {
-            while (shouldUpdateProgress && isPrepared) {
+            while (shouldUpdateProgress) {
                 try {
                     Thread.sleep(200);
-                    if (playbackListener != null) {
-                        playbackListener.onProgressUpdated(
-                                mediaPlayer.getCurrentPosition(),
-                                mediaPlayer.getDuration()
-                        );
+
+                    if (isPrepared && playerState == PlayerState.PLAYING) {
+                        int pos = mediaPlayer.getCurrentPosition();
+                        int dur = mediaPlayer.getDuration();
+
+                        if (playbackListener != null && dur > 0) {
+                            new android.os.Handler(android.os.Looper.getMainLooper()).post(() ->
+                                    playbackListener.onProgressUpdated(pos, dur)
+                            );
+                        }
                     }
                 } catch (InterruptedException e) {
+                    break;
+                } catch (IllegalStateException e) {
                     break;
                 }
             }
@@ -226,6 +250,7 @@ public class AudioPlayerService extends Service {
         shouldUpdateProgress = false;
         if (progressThread != null) {
             progressThread.interrupt();
+            try { progressThread.join(100); } catch (InterruptedException ignored) {}
         }
     }
 
