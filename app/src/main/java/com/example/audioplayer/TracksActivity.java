@@ -69,6 +69,13 @@ public class TracksActivity extends AppCompatActivity {
                 public void onTrackClicked(AudioTrack track) {}
 
                 @Override
+                public void onTrackChanged(AudioTrack track) {
+                    if (adapter != null) {
+                        adapter.setPlayingTrack(track);
+                    }
+                }
+
+                @Override
                 public void onTrackCompleted() {
                     AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
                     List<AudioTrack> tracks = adapter.getCurrentTracks();

@@ -47,6 +47,7 @@ public class MiniPlayerPanel extends FrameLayout {
 
     public interface OnMiniPlayerListener {
         void onTrackClicked(AudioTrack track);
+        void onTrackChanged(AudioTrack track);
         void onTrackCompleted();
     }
 
@@ -107,6 +108,9 @@ public class MiniPlayerPanel extends FrameLayout {
             @Override
             public void onTrackChanged(AudioTrack track) {
                 updateTrackInfo(track);
+                if (externalListener != null) {
+                    externalListener.onTrackChanged(track);
+                }
             }
 
             @Override
