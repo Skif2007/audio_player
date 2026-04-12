@@ -17,4 +17,5 @@
     <color name="tab_indicator">#FF2196F3</color>
     <color name="tab_indicator_unselected">#402196F3</color>
     <color name="bak_card">#98BC13BA</color>
+    <color name="track_playing_bg">#FFF3E0</color>
 </resources>

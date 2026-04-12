@@ -1,14 +1,12 @@
 package com.example.audioplayer;
 
 import android.animation.ValueAnimator;
-import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.View;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,220 +15,138 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 
-import com.example.audioplayer.adapters.TracksAdapter;
+import com.example.audioplayer.fragments.CustomizationFragment;
+import com.example.audioplayer.fragments.PlaylistsFragment;
+import com.example.audioplayer.fragments.SettingsFragment;
+import com.example.audioplayer.fragments.TracksFragment;
 import com.example.audioplayer.models.AudioTrack;
-import com.example.audioplayer.services.AudioPlayerService;
 import com.example.audioplayer.utils.MiniPlayerPanel;
-import com.example.audioplayer.utils.Mp3Scanner;
 import com.example.audioplayer.utils.PlaybackManager;
 import com.google.android.material.navigation.NavigationView;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
 
 public class TracksActivity extends AppCompatActivity {
+
     private ImageView btnMenu;
     private TextView tabSongs, tabPlaylists;
     private View tabIndicator;
-    private boolean isSongsTabActive = true;
     private LinearLayout headerPanel;
-        private RecyclerView rvTracks;
-        private DrawerLayout drawerLayout;
-        private NavigationView navigationView;
-        private TracksAdapter adapter;
-        private ProgressBar progressBar;
-        private TextView tvStatus;
-        private Mp3Scanner scanner;
-        private SharedPreferences prefs;
-        private static final String PREFS_NAME = "app_settings";
-        private static final String KEY_FOLDERS = "selected_folder_paths";
+    private DrawerLayout drawerLayout;
+    private NavigationView navigationView;
 
-        @Override
-        protected void onCreate(@Nullable Bundle savedInstanceState) {
-            super.onCreate(savedInstanceState);
-            setContentView(R.layout.activity_tracks);
+    private boolean isSongsTabActive = true;
+    private TracksFragment currentTracksFragment;
 
-            PlaybackManager.getInstance().init(this);
-            PlaybackManager.getInstance().bindService();
-            MiniPlayerPanel miniPlayer = findViewById(R.id.miniPlayerPanel);
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_tracks);
 
-            miniPlayer.setOnMiniPlayerClickListener(track -> {
-                Toast.makeText(this, "Открываем плеер: " + track.getTitle(), Toast.LENGTH_SHORT).show();
-            });
+        btnMenu = findViewById(R.id.btnMenu);
+        tabSongs = findViewById(R.id.tabSongs);
+        tabPlaylists = findViewById(R.id.tabPlaylists);
+        tabIndicator = findViewById(R.id.tabIndicator);
+        headerPanel = findViewById(R.id.headerPanel);
+        drawerLayout = findViewById(R.id.drawerLayout);
+        navigationView = findViewById(R.id.navigationView);
 
-            miniPlayer.setOnMiniPlayerListener(new MiniPlayerPanel.OnMiniPlayerListener() {
-                @Override
-                public void onTrackClicked(AudioTrack track) {}
+        PlaybackManager.getInstance().init(this);
+        PlaybackManager.getInstance().bindService();
 
-                @Override
-                public void onTrackChanged(AudioTrack track) {
-                    if (adapter != null) {
-                        adapter.setPlayingTrack(track);
-                    }
-                }
+        setupMiniPlayer();
+        setupDrawer();
+        setupTabs();
+        initTabIndicator();
 
-                @Override
-                public void onTrackCompleted() {
-                    AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
-                    List<AudioTrack> tracks = adapter.getCurrentTracks();
-
-                    if (current != null && tracks != null) {
-                        for (int i = 0; i < tracks.size(); i++) {
-                            if (tracks.get(i).getFilePath().equals(current.getFilePath())) {
-                                if (i < tracks.size() - 1) {
-                                    PlaybackManager.getInstance().playTrack(tracks.get(i + 1));
-                                }
-                                break;
-                            }
-                        }
-                    }
-                }
-            });
-
-            if (PlaybackManager.getInstance().isReady()) {
-                AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
-                if (current != null) {
-                    miniPlayer.updateTrackInfo(current);
-                    miniPlayer.showPanel();
-                }
-            }
-
-            drawerLayout = findViewById(R.id.drawerLayout);
-            navigationView = findViewById(R.id.navigationView);
-            headerPanel = findViewById(R.id.headerPanel);
-
-            navigationView.setNavigationItemSelectedListener(item -> {
-                int id = item.getItemId();
-                if (id == R.id.menu_item_1) {
-                    showToast("Пункт 1: в разработке");
-                } else if (id == R.id.menu_item_2) {
-                    showToast("Пункт 2: в разработке");
-                } else if (id == R.id.menu_item_3) {
-                    showToast("Пункт 3: в разработке");
-                }
-                drawerLayout.closeDrawers();
-                return true;
-            });
-
-            btnMenu = findViewById(R.id.btnMenu);
-            tabSongs = findViewById(R.id.tabSongs);
-            tabPlaylists = findViewById(R.id.tabPlaylists);
-            tabIndicator = findViewById(R.id.tabIndicator);
-
-            btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
-
-            tabSongs.setOnClickListener(v -> switchTab(true));
-            tabPlaylists.setOnClickListener(v -> switchTab(false));
-
-            updateTabStyles(isSongsTabActive);
-            // Инициализация позиции индикатора
-            tabSongs.post(() -> {
-                int[] tabPos = new int[2];
-                int[] headerPos = new int[2];
-
-                tabSongs.getLocationOnScreen(tabPos);
-                headerPanel.getLocationOnScreen(headerPos);
-
-                float tabLeftRelativeToHeader = tabPos[0] - headerPos[0];
-                float textWidth = tabSongs.getPaint().measureText(tabSongs.getText().toString());
-                float textStartX = tabLeftRelativeToHeader + tabSongs.getPaddingLeft();
-
-                float indicatorStartX = textStartX;
-
-                tabIndicator.getLayoutParams().width = (int) textWidth;
-                tabIndicator.setX(indicatorStartX);
-                tabIndicator.requestLayout();
-            });
-
-            rvTracks = findViewById(R.id.rvTracks);
-            progressBar = findViewById(R.id.progressBar);
-            tvStatus = findViewById(R.id.tvStatus);
-
-            prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-
-            rvTracks.setLayoutManager(new LinearLayoutManager(this));
-            List<AudioTrack> emptyList = new ArrayList<>();
-
-            adapter = new TracksAdapter(this, emptyList, new TracksAdapter.OnTrackMenuClickListener() {
-                @Override
-                public void onMenuClick(AudioTrack track, View anchorView) {
-                    // TODO: Реализовать PopupMenu с действиями: играть, добавить в плейлист, инфо
-                    showToast("Меню: " + track.getTitle());
-                }
-            });
-
-            rvTracks.setAdapter(adapter);
-            List<AudioTrack> savedTracks = Mp3Scanner.loadTracksFromPrefs(this);
-            if (!savedTracks.isEmpty()) {
-                progressBar.setVisibility(View.GONE);
-                tvStatus.setVisibility(View.GONE);
-                rvTracks.setVisibility(View.VISIBLE);
-                adapter.updateTracks(savedTracks);
-                return;
-
-            }
-            startScanning();
+        if (savedInstanceState == null) {
+            loadTracksFragment();
+            setHeaderVisible(true);
         }
+    }
 
-        private void startScanning() {
-            progressBar.setVisibility(View.VISIBLE);
-            tvStatus.setVisibility(View.VISIBLE);
-            tvStatus.setText("Сканирование папок...");
-            rvTracks.setVisibility(View.GONE);
-            Set<String> foldersSet = prefs.getStringSet(KEY_FOLDERS, new HashSet<>());
-            List<String> folders = new ArrayList<>(foldersSet);
+    private void loadTracksFragment() {
+        currentTracksFragment = new TracksFragment();
+        openFragment(currentTracksFragment, false);
+        isSongsTabActive = true;
+        updateTabStyles(true);
+        initTabIndicator();
+    }
 
-            if (folders.isEmpty()) {
-                progressBar.setVisibility(View.GONE);
-                tvStatus.setVisibility(View.VISIBLE);
-                tvStatus.setText("Нет выбранных папок");
-                return;
+    private void openFragment(Fragment fragment, boolean animate) {
+        FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+        if (animate) {
+            transaction.setCustomAnimations(
+                    R.anim.fragment_slide_in,
+                    R.anim.fragment_slide_out,
+                    R.anim.fragment_slide_in,
+                    R.anim.fragment_slide_out
+            );
+        }
+        transaction.replace(R.id.fragmentContainer, fragment).commit();
+
+        if (fragment instanceof TracksFragment) {
+            currentTracksFragment = (TracksFragment) fragment;
+            setHeaderVisible(true);
+        } else if (fragment instanceof PlaylistsFragment) {
+            setHeaderVisible(true);
+        } else {
+            setHeaderVisible(false);
+        }
+    }
+
+    private void setHeaderVisible(boolean visible) {
+        if (headerPanel != null) {
+            headerPanel.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+        if (tabIndicator != null) {
+            tabIndicator.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void setupDrawer() {
+        btnMenu.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_library) {
+                loadTracksFragment();
+                setHeaderVisible(true);
+            } else if (id == R.id.nav_settings) {
+                openFragment(new SettingsFragment(), true);
+            } else if (id == R.id.nav_customization) {
+                openFragment(new CustomizationFragment(), true);
             }
-            scanner = new Mp3Scanner(this, new Mp3Scanner.OnScanCompleteListener() {
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
+    }
 
-                @Override
-                public void onScanComplete(List<AudioTrack> tracks) {
-                    progressBar.setVisibility(View.GONE);
-                    tvStatus.setVisibility(View.GONE);
-                    rvTracks.setVisibility(View.VISIBLE);
-                    adapter.updateTracks(tracks);
-                    Mp3Scanner.saveTracksToPrefs(TracksActivity.this, tracks);
-
-                    Toast.makeText(TracksActivity.this, "Найдено: " + tracks.size() + " треков", Toast.LENGTH_SHORT).show();
-
-                }
-
-            });
-
-            scanner.startScanning(folders);
-
-        }
-        @Override
-        protected void onDestroy() {
-            super.onDestroy();
-            PlaybackManager.getInstance().unbindService();
-        }
-
-    private void switchTab(boolean songsSelected) {
-            /*Переключает визуальное состояние вкладок. */
-        if (isSongsTabActive == songsSelected) return;
-        isSongsTabActive = songsSelected;
-
-        animateIndicator(songsSelected);
-        updateTabStyles(songsSelected);
-
-        // TODO: Добавить переключение контента при реализации плейлистов/настроек
+    private void setupTabs() {
+        tabSongs.setOnClickListener(v -> {
+            if (!isSongsTabActive) {
+                loadTracksFragment();
+            }
+        });
+        tabPlaylists.setOnClickListener(v -> {
+            if (isSongsTabActive) {
+                openFragment(new PlaylistsFragment(), true);
+                isSongsTabActive = false;
+                animateIndicator(false);
+                updateTabStyles(false);
+            }
+        });
     }
 
     private void updateTabStyles(boolean songsSelected) {
         TextView activeTab = songsSelected ? tabSongs : tabPlaylists;
         TextView inactiveTab = songsSelected ? tabPlaylists : tabSongs;
+
+        activeTab.animate().cancel();
+        inactiveTab.animate().cancel();
 
         activeTab.animate()
                 .scaleX(1.1f)
@@ -253,6 +169,7 @@ public class TracksActivity extends AppCompatActivity {
         TextView targetTab = toSongsTab ? tabSongs : tabPlaylists;
 
         targetTab.post(() -> {
+            if (headerPanel == null) return;
             int[] tabPos = new int[2];
             int[] headerPos = new int[2];
 
@@ -262,11 +179,9 @@ public class TracksActivity extends AppCompatActivity {
             float tabLeftRelativeToHeader = tabPos[0] - headerPos[0];
             float textWidth = targetTab.getPaint().measureText(targetTab.getText().toString());
             float textStartX = tabLeftRelativeToHeader + targetTab.getPaddingLeft();
-            float indicatorStartX = textStartX;
 
-            // Анимация позиции
             tabIndicator.animate()
-                    .x(indicatorStartX)
+                    .x(textStartX)
                     .setDuration(200)
                     .setInterpolator(new AccelerateDecelerateInterpolator())
                     .start();
@@ -286,13 +201,85 @@ public class TracksActivity extends AppCompatActivity {
         });
     }
 
+    private void initTabIndicator() {
+        if (tabSongs == null || headerPanel == null) return;
+        tabSongs.post(() -> {
+            int[] tabPos = new int[2];
+            int[] headerPos = new int[2];
+
+            tabSongs.getLocationOnScreen(tabPos);
+            headerPanel.getLocationOnScreen(headerPos);
+
+            float tabLeftRelativeToHeader = tabPos[0] - headerPos[0];
+            float textWidth = tabSongs.getPaint().measureText(tabSongs.getText().toString());
+            float textStartX = tabLeftRelativeToHeader + tabSongs.getPaddingLeft();
+
+            tabIndicator.getLayoutParams().width = (int) textWidth;
+            tabIndicator.setX(textStartX);
+            tabIndicator.requestLayout();
+        });
+    }
+
+    private void setupMiniPlayer() {
+        MiniPlayerPanel miniPlayer = findViewById(R.id.miniPlayerPanel);
+
+        miniPlayer.setOnMiniPlayerClickListener(track ->
+                Toast.makeText(this, "Открываем плеер: " + track.getTitle(), Toast.LENGTH_SHORT).show()
+        );
+
+        miniPlayer.setOnMiniPlayerListener(new MiniPlayerPanel.OnMiniPlayerListener() {
+            @Override
+            public void onTrackClicked(AudioTrack track) {
+            }
+
+            @Override
+            public void onTrackChanged(AudioTrack track) {
+                if (currentTracksFragment != null && currentTracksFragment.getAdapter() != null) {
+                    currentTracksFragment.getAdapter().setPlayingTrack(track);
+                }
+            }
+
+            @Override
+            public void onTrackCompleted() {
+                if (currentTracksFragment == null || currentTracksFragment.getAdapter() == null) return;
+
+                AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
+                List<AudioTrack> tracks = currentTracksFragment.getAdapter().getCurrentTracks();
+
+                if (current != null && tracks != null) {
+                    for (int i = 0; i < tracks.size(); i++) {
+                        if (tracks.get(i).getFilePath().equals(current.getFilePath())) {
+                            if (i < tracks.size() - 1) {
+                                PlaybackManager.getInstance().playTrack(tracks.get(i + 1));
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+
+        if (PlaybackManager.getInstance().isReady()) {
+            AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
+            if (current != null) {
+                miniPlayer.updateTrackInfo(current);
+                miniPlayer.showPanel();
+                if (currentTracksFragment != null && currentTracksFragment.getAdapter() != null) {
+                    currentTracksFragment.getAdapter().setPlayingTrack(current);
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        PlaybackManager.getInstance().unbindService();
+    }
+
     private void showToast(String message) {
         runOnUiThread(() ->
                 Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         );
     }
-
-
 }
-
-
