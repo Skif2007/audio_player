@@ -82,7 +82,6 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
     @Override
     public TrackViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(context).inflate(R.layout.item_track, parent, false);
-        // 🔥 Передаём context в ViewHolder
         return new TrackViewHolder(view, context);
     }
 
@@ -108,7 +107,7 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
      */
     static class TrackViewHolder extends RecyclerView.ViewHolder {
 
-        private final Context context; // 🔥 Храним контекст
+        private final Context context;
         private final ImageView ivCover;
         private final TextView tvTitle, tvArtist;
         private final ImageButton btnMenu;
@@ -120,7 +119,7 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
 
         public TrackViewHolder(@NonNull View itemView, Context context) {
             super(itemView);
-            this.context = context; // 🔥 Сохраняем
+            this.context = context;
             ivCover = itemView.findViewById(R.id.ivCover);
             tvTitle = itemView.findViewById(R.id.tvTitle);
             tvArtist = itemView.findViewById(R.id.tvArtist);
@@ -139,7 +138,6 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
             tvTitle.setText(track.getTitle());
             tvArtist.setText(track.getArtist());
 
-            // 🔥 Загружаем обложку напрямую, используя свой контекст
             loadAlbumArtAsync(track.getAlbumArtFileName(), ivCover);
 
             setPlayingState(isPlaying);

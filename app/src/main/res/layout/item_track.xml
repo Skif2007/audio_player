@@ -7,9 +7,7 @@
     android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true">
-    <!-- 🔥 УБРАЛИ padding отсюда -->
 
-    <!-- 1. Рамка на весь размер родителя (рисуется первой → будет ПОД контентом) -->
     <View
         android:id="@+id/viewPlayingBorder"
         android:layout_width="match_parent"
@@ -17,13 +15,11 @@
         android:background="@drawable/bg_playing_border"
         android:visibility="gone" />
 
-    <!-- 2. Контент с внутренним отступом -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="8dp"> <!-- 🔥 ДОБАВИЛИ padding сюда -->
+        android:padding="8dp">
 
-        <!-- Обложка + эквалайзер -->
         <FrameLayout
             android:id="@+id/coverContainer"
             android:layout_width="56dp"
@@ -41,7 +37,6 @@
                 android:clipToOutline="true"
                 android:background="@drawable/bg_rounded_cover"/>
 
-            <!-- Эквалайзер -->
             <LinearLayout
                 android:id="@+id/layoutEqualizer"
                 android:layout_width="wrap_content"

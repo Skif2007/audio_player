@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.audioplayer.R;
 import com.example.audioplayer.adapters.TracksAdapter;
 import com.example.audioplayer.models.AudioTrack;
+import com.example.audioplayer.ui.TrackMenuPopup;
 import com.example.audioplayer.utils.Mp3Scanner;
 import com.example.audioplayer.utils.PlaybackManager;
 
@@ -55,9 +56,12 @@ public class TracksFragment extends Fragment {
         prefs = requireActivity().getSharedPreferences(PREFS_NAME, requireActivity().MODE_PRIVATE);
 
         rvTracks.setLayoutManager(new LinearLayoutManager(requireContext()));
-        adapter = new TracksAdapter(requireContext(), new ArrayList<>(), (track, anchorView) ->
-                showToast("Меню: " + track.getTitle())
-        );
+        adapter = new TracksAdapter(requireContext(), new ArrayList<>(), (track, anchorView) -> {
+            TrackMenuPopup popup = new TrackMenuPopup(requireContext(), (menuItem, selectedTrack) -> {
+                //Сюда в будущем реальную логику обработки пунктов
+            });
+            popup.show(anchorView, track);
+        });
         rvTracks.setAdapter(adapter);
 
         // Восстанавливаем подсветку текущего трека при создании фрагмента
