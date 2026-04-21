@@ -46,7 +46,6 @@ public class TrackMenuPopup {
         MaterialCardView card = createPopupCard(track, popup);
         popup.setContentView(card);
 
-        // Позиционируем относительно иконки со смещением влево/вверх
         popup.showAsDropDown(anchor, -dp(12), -dp(4), Gravity.END);
     }
 
@@ -115,7 +114,7 @@ public class TrackMenuPopup {
                     v.animate().scaleX(1f).scaleY(1f).setDuration(80).start();
                     break;
             }
-            return false; // Пропускаем событие к OnClickListener
+            return false;
         });
     }
 
