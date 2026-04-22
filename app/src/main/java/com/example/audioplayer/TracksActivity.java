@@ -241,6 +241,14 @@ public class TracksActivity extends AppCompatActivity {
 
             @Override
             public void onTrackCompleted() {
+                // Сначала проверяем — играем ли из плейлиста
+                AudioTrack nextPlaylistTrack = PlaybackManager.getInstance().getNextTrackInPlaylist();
+                if (nextPlaylistTrack != null) {
+                    PlaybackManager.getInstance().playTrack(nextPlaylistTrack);
+                    return;
+                }
+
+                // Старая логика — следующий трек из общего списка
                 if (currentTracksFragment == null || currentTracksFragment.getAdapter() == null) return;
 
                 AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();

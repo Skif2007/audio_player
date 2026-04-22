@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.audioplayer.R;
 import com.example.audioplayer.adapters.TracksAdapter;
 import com.example.audioplayer.models.AudioTrack;
+import com.example.audioplayer.ui.AddToPlaylistDialog;
 import com.example.audioplayer.ui.TrackMenuPopup;
 import com.example.audioplayer.utils.Mp3Scanner;
 import com.example.audioplayer.utils.PlaybackManager;
@@ -58,7 +59,12 @@ public class TracksFragment extends Fragment {
         rvTracks.setLayoutManager(new LinearLayoutManager(requireContext()));
         adapter = new TracksAdapter(requireContext(), new ArrayList<>(), (track, anchorView) -> {
             TrackMenuPopup popup = new TrackMenuPopup(requireContext(), (menuItem, selectedTrack) -> {
-                //Сюда в будущем реальную логику обработки пунктов
+                if (menuItem == TrackMenuPopup.MenuItem.ADD_TO_PLAYLIST) {
+                    AddToPlaylistDialog dialog = new AddToPlaylistDialog();
+                    dialog.setTrackToAdd(selectedTrack);
+                    dialog.show(getParentFragmentManager(), "add_to_playlist");
+                }
+                // Остальные пункты пока заглушки
             });
             popup.show(anchorView, track);
         });

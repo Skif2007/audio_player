@@ -13,6 +13,9 @@ import androidx.annotation.Nullable;
 import com.example.audioplayer.models.AudioTrack;
 import com.example.audioplayer.services.AudioPlayerService;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Singleton-менеджер для централизованного управления воспроизведением.
  * Позволяет любой части приложения контролировать плеер без прямой привязки к Service.
@@ -30,8 +33,12 @@ public class PlaybackManager {
     private long lastPlayRequestTime = 0;
     private static final long MIN_PLAY_INTERVAL_MS = 150;
 
-    // Слушатели для обновления UI в разных активностях
-    private AudioPlayerService.OnPlaybackListener uiListener;
+    // Слушатели для обновления UI в разных активностях (несколько одновременно)
+    private final List<AudioPlayerService.OnPlaybackListener> uiListeners = new ArrayList<>();
+
+    // Контекст плейлиста для автоперехода к следующему треку
+    private String currentPlaylistId;
+    private List<AudioTrack> currentPlaylistTracks;
 
     private PlaybackManager() {}
 
@@ -69,8 +76,8 @@ public class PlaybackManager {
             AudioPlayerService.LocalBinder binder = (AudioPlayerService.LocalBinder) service;
             playerService = binder.getService();
             isBound = true;
-            if (uiListener != null) {
-                playerService.setPlaybackListener(uiListener);
+            if (!uiListeners.isEmpty()) {
+                playerService.setPlaybackListener(compositeListener);
             }
             Log.d(TAG, "Service connected");
         }
@@ -100,6 +107,38 @@ public class PlaybackManager {
         playerService.play();
     }
 
+    public void playTrackFromPlaylist(@NonNull AudioTrack track, @Nullable String playlistId, @Nullable List<AudioTrack> playlistTracks) {
+        this.currentPlaylistId = playlistId;
+        this.currentPlaylistTracks = playlistTracks != null ? new ArrayList<>(playlistTracks) : null;
+        playTrack(track);
+    }
+
+    @Nullable
+    public AudioTrack getNextTrackInPlaylist() {
+        if (currentPlaylistTracks == null || currentPlaylistTracks.isEmpty()) return null;
+        AudioTrack current = getCurrentTrack();
+        if (current == null) return null;
+        for (int i = 0; i < currentPlaylistTracks.size(); i++) {
+            if (currentPlaylistTracks.get(i).getFilePath().equals(current.getFilePath())) {
+                if (i < currentPlaylistTracks.size() - 1) {
+                    return currentPlaylistTracks.get(i + 1);
+                }
+                break;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    public String getCurrentPlaylistId() {
+        return currentPlaylistId;
+    }
+
+    public void clearPlaylistContext() {
+        currentPlaylistId = null;
+        currentPlaylistTracks = null;
+    }
+
     public void togglePlayback() {
         if (playerService == null) return;
         if (playerService.isPlaying()) {
@@ -119,8 +158,25 @@ public class PlaybackManager {
         return playerService != null ? playerService.getCurrentTrack() : null;
     }
 
+    public void addUiListener(@NonNull AudioPlayerService.OnPlaybackListener listener) {
+        if (!uiListeners.contains(listener)) {
+            uiListeners.add(listener);
+        }
+        if (playerService != null) {
+            playerService.setPlaybackListener(compositeListener);
+        }
+    }
+
+    public void removeUiListener(@NonNull AudioPlayerService.OnPlaybackListener listener) {
+        uiListeners.remove(listener);
+    }
+
+    // Обратная совместимость — заменяет единственный слушатель
     public void setUiListener(@Nullable AudioPlayerService.OnPlaybackListener listener) {
-        this.uiListener = listener;
+        uiListeners.clear();
+        if (listener != null) {
+            uiListeners.add(listener);
+        }
         if (playerService != null) {
             playerService.setPlaybackListener(listener);
         }
@@ -134,4 +190,28 @@ public class PlaybackManager {
     public boolean isReady() {
         return isBound && playerService != null;
     }
+
+    // Composite listener — перенаправляет события всем зарегистрированным слушателям
+    private final AudioPlayerService.OnPlaybackListener compositeListener = new AudioPlayerService.OnPlaybackListener() {
+        @Override
+        public void onTrackClicked(AudioTrack track) {
+            for (AudioPlayerService.OnPlaybackListener l : new ArrayList<>(uiListeners)) {
+                l.onTrackClicked(track);
+            }
+        }
+
+        @Override
+        public void onTrackChanged(AudioTrack track) {
+            for (AudioPlayerService.OnPlaybackListener l : new ArrayList<>(uiListeners)) {
+                l.onTrackChanged(track);
+            }
+        }
+
+        @Override
+        public void onTrackCompleted() {
+            for (AudioPlayerService.OnPlaybackListener l : new ArrayList<>(uiListeners)) {
+                l.onTrackCompleted();
+            }
+        }
+    };
 }
