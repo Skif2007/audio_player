@@ -238,4 +238,15 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
             }).start();
         }
     }
+
+//    public void updatePlayingState(boolean isPlaying) {
+//        if (playingTrack == null) return;
+//        for (int i = 0; i < tracks.size(); i++) {
+//            if (tracks.get(i).getFilePath().equals(playingTrack.getFilePath())) {
+//                notifyItemChanged(i);
+//                break;
+//            }
+//        }
+//    }
+
 }

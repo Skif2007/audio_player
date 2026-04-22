@@ -34,6 +34,7 @@ public class MiniPlayerPanel extends FrameLayout {
     private AudioTrack currentTrack;
     private boolean isBoundToService = false;
     private OnMiniPlayerListener externalListener;
+    private AudioPlayerService.OnPlaybackListener panelPlaybackListener;
 
     public void setOnMiniPlayerListener(OnMiniPlayerListener listener) {
         this.externalListener = listener;
@@ -91,7 +92,7 @@ public class MiniPlayerPanel extends FrameLayout {
 
     }
     private void setupPlaybackListener() {
-        AudioPlayerService.OnPlaybackListener listener = new AudioPlayerService.OnPlaybackListener() {
+        panelPlaybackListener = new AudioPlayerService.OnPlaybackListener() {
             @Override
             public void onPlaybackStateChanged(boolean isPlaying) {
                 updatePlayPauseIcon(isPlaying);
@@ -120,7 +121,7 @@ public class MiniPlayerPanel extends FrameLayout {
                 }
             }
         };
-        PlaybackManager.getInstance().setUiListener(listener);
+        PlaybackManager.getInstance().addUiListener(panelPlaybackListener);
     }
 
     public void updateTrackInfo(AudioTrack track) {
@@ -182,6 +183,9 @@ public class MiniPlayerPanel extends FrameLayout {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        PlaybackManager.getInstance().setUiListener(null);
+        if (panelPlaybackListener != null) {
+            PlaybackManager.getInstance().removeUiListener(panelPlaybackListener);
+            panelPlaybackListener = null;
+        }
     }
 }

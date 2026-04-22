@@ -39,7 +39,13 @@ public class PlaylistDetailActivity extends AppCompatActivity {
 
     private final AudioPlayerService.OnPlaybackListener playbackListener = new AudioPlayerService.OnPlaybackListener() {
         @Override
-        public void onTrackClicked(AudioTrack track) {
+        public void onPlaybackStateChanged(boolean isPlaying) {
+            // Заглушка: можно добавить обновление UI кнопки play/pause позже
+        }
+
+        @Override
+        public void onProgressUpdated(int currentPosition, int duration) {
+            // Заглушка: можно добавить обновление прогресс-бара позже
         }
 
         @Override
@@ -47,18 +53,22 @@ public class PlaylistDetailActivity extends AppCompatActivity {
             if (adapter != null && track != null) {
                 adapter.setPlayingTrack(track);
             }
+            // Мини-панель уже обновляется через setupMiniPlayer(),
+            // но для надёжности можно продублировать:
+            if (miniPlayer != null && track != null) {
+                miniPlayer.updateTrackInfo(track);
+                miniPlayer.showPanel();
+            }
         }
 
         @Override
         public void onTrackCompleted() {
-            // Если играем из этого плейлиста — берём следующий трек
             String currentPlaylist = PlaybackManager.getInstance().getCurrentPlaylistId();
-            if (playlistId.equals(currentPlaylist)) {
+            if (playlistId != null && playlistId.equals(currentPlaylist)) {
                 AudioTrack next = PlaybackManager.getInstance().getNextTrackInPlaylist();
                 if (next != null) {
                     PlaybackManager.getInstance().playTrack(next);
                 } else {
-                    // Дошли до последнего — стоп
                     PlaybackManager.getInstance().clearPlaylistContext();
                 }
             }

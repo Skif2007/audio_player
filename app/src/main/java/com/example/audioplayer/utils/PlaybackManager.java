@@ -194,9 +194,16 @@ public class PlaybackManager {
     // Composite listener — перенаправляет события всем зарегистрированным слушателям
     private final AudioPlayerService.OnPlaybackListener compositeListener = new AudioPlayerService.OnPlaybackListener() {
         @Override
-        public void onTrackClicked(AudioTrack track) {
+        public void onPlaybackStateChanged(boolean isPlaying) {
             for (AudioPlayerService.OnPlaybackListener l : new ArrayList<>(uiListeners)) {
-                l.onTrackClicked(track);
+                l.onPlaybackStateChanged(isPlaying);
+            }
+        }
+
+        @Override
+        public void onProgressUpdated(int currentPosition, int duration) {
+            for (AudioPlayerService.OnPlaybackListener l : new ArrayList<>(uiListeners)) {
+                l.onProgressUpdated(currentPosition, duration);
             }
         }
 
