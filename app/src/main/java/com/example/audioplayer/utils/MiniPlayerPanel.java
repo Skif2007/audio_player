@@ -122,6 +122,19 @@ public class MiniPlayerPanel extends FrameLayout {
             }
         };
         PlaybackManager.getInstance().addUiListener(panelPlaybackListener);
+
+
+        if (PlaybackManager.getInstance().isReady()) {
+            AudioPlayerService service = PlaybackManager.getInstance().getService();
+            if (service != null) {
+                updatePlayPauseIcon(service.isPlaying());
+                int pos = service.getCurrentPosition();
+                int dur = service.getDuration();
+                if (dur > 0) {
+                    btnProgress.setProgress((float) pos / dur);
+                }
+            }
+        }
     }
 
     public void updateTrackInfo(AudioTrack track) {
