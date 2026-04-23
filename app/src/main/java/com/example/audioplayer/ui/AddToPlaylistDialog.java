@@ -3,6 +3,7 @@ package com.example.audioplayer.ui;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -47,6 +48,10 @@ public class AddToPlaylistDialog extends DialogFragment {
                 .setView(view)
                 .create();
 
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_dialog_white_rounded);
+        }
+
         btnCreatePlaylist.setOnClickListener(v -> {
             dialog.dismiss();
             showCreateAndAddDialog(context);
@@ -74,7 +79,7 @@ public class AddToPlaylistDialog extends DialogFragment {
         int padding = (int) (16 * context.getResources().getDisplayMetrics().density);
         input.setPadding(padding, padding / 2, padding, padding / 2);
 
-        new AlertDialog.Builder(context)
+        AlertDialog.Builder builder = new AlertDialog.Builder(context)
                 .setTitle("Новый плейлист")
                 .setView(input)
                 .setPositiveButton("Создать", (d, which) -> {
@@ -90,8 +95,18 @@ public class AddToPlaylistDialog extends DialogFragment {
                         Toast.makeText(context, "Плейлист создан и трек добавлен", Toast.LENGTH_SHORT).show();
                     }
                 })
-                .setNegativeButton("Отмена", null)
-                .show();
+                .setNegativeButton("Отмена", null);
+
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_dialog_white_rounded);
+        }
+        dialog.show();
+
+        input.post(() -> {
+            input.setTextColor(Color.BLACK);
+            input.setHintTextColor(Color.parseColor("#888888"));
+        });
     }
 
     static class SimplePlaylistAdapter extends RecyclerView.Adapter<SimplePlaylistAdapter.ViewHolder> {

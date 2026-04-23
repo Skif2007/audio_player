@@ -2,6 +2,7 @@ package com.example.audioplayer.fragments;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -145,7 +146,7 @@ public class PlaylistsFragment extends Fragment {
         int padding = (int) (16 * getResources().getDisplayMetrics().density);
         input.setPadding(padding, padding / 2, padding, padding / 2);
 
-        new AlertDialog.Builder(requireContext())
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext())
                 .setTitle("Новый плейлист")
                 .setView(input)
                 .setPositiveButton("Создать", (dialog, which) -> {
@@ -159,7 +160,17 @@ public class PlaylistsFragment extends Fragment {
                     loadPlaylists();
                     Toast.makeText(requireContext(), "Плейлист создан", Toast.LENGTH_SHORT).show();
                 })
-                .setNegativeButton("Отмена", null)
-                .show();
+                .setNegativeButton("Отмена", null);
+
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.bg_dialog_white_rounded);
+        }
+        dialog.show();
+
+        input.post(() -> {
+            input.setTextColor(Color.BLACK);
+            input.setHintTextColor(Color.parseColor("#888888"));
+        });
     }
 }
