@@ -1,6 +1,7 @@
 package com.example.audioplayer.ui;
 
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -9,8 +10,8 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.LinearLayout;
-import android.widget.PopupWindow;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,20 +37,17 @@ public class TrackMenuPopup {
     }
 
     public void show(View anchor, AudioTrack track) {
-        final PopupWindow popup = new PopupWindow(context);
-        popup.setWidth(ViewGroup.LayoutParams.WRAP_CONTENT);
-        popup.setHeight(ViewGroup.LayoutParams.WRAP_CONTENT);
-        popup.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        popup.setOutsideTouchable(true);
-        popup.setFocusable(true);
-
-        MaterialCardView card = createPopupCard(track, popup);
-        popup.setContentView(card);
-
-        popup.showAsDropDown(anchor, -dp(12), -dp(4), Gravity.END);
+        Dialog dialog = new Dialog(context);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(createPopupCard(track, dialog));
+        dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.getWindow().setDimAmount(0.5f);
+        dialog.getWindow().setGravity(Gravity.CENTER);
+        dialog.setCanceledOnTouchOutside(true);
+        dialog.show();
     }
 
-    private MaterialCardView createPopupCard(AudioTrack track, PopupWindow popup) {
+    private MaterialCardView createPopupCard(AudioTrack track, Dialog dialog) {
         MaterialCardView card = new MaterialCardView(context);
         card.setCardBackgroundColor(Color.WHITE);
         card.setRadius(dp(12));
@@ -80,7 +78,7 @@ public class TrackMenuPopup {
                     listener.onMenuItemSelected(menuItem, track);
                 }
                 Toast.makeText(context, "Нажат пункт: " + label, Toast.LENGTH_SHORT).show();
-                popup.dismiss(); // 🔥 Закрываем окно после выбора
+                dialog.dismiss();
             });
 
             layout.addView(item);
@@ -94,11 +92,11 @@ public class TrackMenuPopup {
         TextView item = new TextView(context);
         item.setText(text);
         item.setTextColor(Color.BLACK);
-        item.setTextSize(14);
-        item.setPadding(dp(16), dp(12), dp(16), dp(12));
+        item.setTextSize(16); // ↑ было 14
+        item.setPadding(dp(18), dp(14), dp(18), dp(14)); // ↑ было 16/12
         item.setBackground(background);
         item.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        item.setMinHeight(dp(48));
+        item.setMinHeight(dp(52)); // ↑ было 48, пропорционально тексту
         return item;
     }
 
@@ -107,7 +105,7 @@ public class TrackMenuPopup {
         view.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    v.animate().scaleX(0.96f).scaleY(0.96f).setDuration(80).start();
+                    v.animate().scaleX(0.94f).scaleY(0.94f).setDuration(80).start(); // ↑ было 0.96
                     break;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
