@@ -9,13 +9,13 @@ import android.graphics.drawable.Drawable;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.audioplayer.models.AudioTrack;
+import com.example.audioplayer.utils.PlaybackManager; // ← обычный импорт
 import com.google.android.material.card.MaterialCardView;
 
 public class TrackMenuPopup {
@@ -58,8 +58,12 @@ public class TrackMenuPopup {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(0, dp(4), 0, dp(4));
 
+        // ← прямой вызов вместо рефлексии
+        boolean isLooping = PlaybackManager.getInstance().isLooping(track);
+
         String[] labels = {
-                "Зациклить", "Воспроизвести следующим", "Удалить с устройства",
+                isLooping ? "Прервать цикл" : "Зациклить",
+                "Воспроизвести следующим", "Удалить с устройства",
                 "Добавить в плейлист", "Скрыть трек", "Поделиться", "О треке"
         };
         MenuItem[] items = MenuItem.values();
@@ -80,6 +84,13 @@ public class TrackMenuPopup {
                 Toast.makeText(context, "Нажат пункт: " + label, Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
+//            Когда все пункты реализую уберу эти тосты
+//            item.setOnClickListener(v -> {
+//                if (listener != null) {
+//                    listener.onMenuItemSelected(menuItem, track);
+//                }
+//                dialog.dismiss();
+//            });
 
             layout.addView(item);
         }
@@ -92,11 +103,11 @@ public class TrackMenuPopup {
         TextView item = new TextView(context);
         item.setText(text);
         item.setTextColor(Color.BLACK);
-        item.setTextSize(16); // ↑ было 14
-        item.setPadding(dp(18), dp(14), dp(18), dp(14)); // ↑ было 16/12
+        item.setTextSize(16);
+        item.setPadding(dp(18), dp(14), dp(18), dp(14));
         item.setBackground(background);
         item.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        item.setMinHeight(dp(52)); // ↑ было 48, пропорционально тексту
+        item.setMinHeight(dp(52));
         return item;
     }
 
@@ -105,7 +116,7 @@ public class TrackMenuPopup {
         view.setOnTouchListener((v, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    v.animate().scaleX(0.94f).scaleY(0.94f).setDuration(80).start(); // ↑ было 0.96
+                    v.animate().scaleX(0.94f).scaleY(0.94f).setDuration(80).start();
                     break;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:

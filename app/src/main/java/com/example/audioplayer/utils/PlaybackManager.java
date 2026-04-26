@@ -28,6 +28,8 @@ public class PlaybackManager {
     private static PlaybackManager instance;
 
     private AudioPlayerService playerService;
+    private boolean isLoopMode = false;
+    private String loopedTrackPath = null;
     private boolean isBound = false;
     private Context appContext;
     private long lastPlayRequestTime = 0;
@@ -91,6 +93,11 @@ public class PlaybackManager {
     };
 
     public void playTrack(@NonNull AudioTrack track) {
+        if (isLoopMode && loopedTrackPath != null && track.getFilePath() != null &&
+                !track.getFilePath().equals(loopedTrackPath)) {
+            isLoopMode = false;
+            loopedTrackPath = null;
+        }
         if (playerService == null) {
             bindService();
             return;
@@ -182,6 +189,53 @@ public class PlaybackManager {
         }
     }
 
+
+    /**
+     * Включить/выключить зацикливание для трека.
+     * Если трек не играет — начать воспроизведение.
+     */
+    public void toggleLoop(@NonNull AudioTrack track) {
+        if (track == null || track.getFilePath() == null) return;
+
+        String trackPath = track.getFilePath();
+
+        if (isLoopMode && loopedTrackPath != null && loopedTrackPath.equals(trackPath)) {
+            isLoopMode = false;
+            loopedTrackPath = null;
+        } else {
+            isLoopMode = true;
+            loopedTrackPath = trackPath;
+
+            AudioTrack current = getCurrentTrack();
+            if (current == null || !trackPath.equals(current.getFilePath())) {
+                playTrack(track);
+            }
+        }
+    }
+
+    /**
+     * Проверить, зациклен ли указанный трек.
+     */
+    public boolean isLooping(@Nullable AudioTrack track) {
+        if (!isLoopMode || track == null || track.getFilePath() == null) return false;
+        return loopedTrackPath != null && loopedTrackPath.equals(track.getFilePath());
+    }
+
+    /**
+     * Проверить, активен ли режим зацикливания (для любого трека).
+     */
+    public boolean isLoopModeActive() {
+        return isLoopMode;
+    }
+
+    /**
+     * Получить путь к зацикленному треку (для внутреннего использования).
+     */
+    @Nullable
+    String getLoopedTrackPath() {
+        return loopedTrackPath;
+    }
+
     @Nullable
     public AudioPlayerService getService() {
         return playerService;
@@ -216,6 +270,15 @@ public class PlaybackManager {
 
         @Override
         public void onTrackCompleted() {
+            if (isLoopMode && loopedTrackPath != null) {
+                AudioTrack current = getCurrentTrack();
+                if (current != null && current.getFilePath() != null &&
+                        loopedTrackPath.equals(current.getFilePath())) {
+                    playTrack(current);
+                    return;
+                }
+            }
+
             for (AudioPlayerService.OnPlaybackListener l : new ArrayList<>(uiListeners)) {
                 l.onTrackCompleted();
             }

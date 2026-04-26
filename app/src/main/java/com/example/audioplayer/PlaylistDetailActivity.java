@@ -102,6 +102,12 @@ public class PlaylistDetailActivity extends AppCompatActivity {
                     AddToPlaylistDialog dialog = new AddToPlaylistDialog();
                     dialog.setTrackToAdd(selectedTrack);
                     dialog.show(getSupportFragmentManager(), "add_to_playlist");
+                } else if (menuItem == TrackMenuPopup.MenuItem.LOOP) {
+                    PlaybackManager.getInstance().toggleLoop(selectedTrack);
+                    boolean isLooping = PlaybackManager.getInstance().isLooping(selectedTrack);
+                    Toast.makeText(this,
+                            isLooping ? "Зациклено: " + selectedTrack.getTitle() : "Цикл прерван",
+                            Toast.LENGTH_SHORT).show();
                 }
                 // Остальные пункты — заглушки
             });

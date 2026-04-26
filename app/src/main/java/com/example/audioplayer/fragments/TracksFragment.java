@@ -63,8 +63,13 @@ public class TracksFragment extends Fragment {
                     AddToPlaylistDialog dialog = new AddToPlaylistDialog();
                     dialog.setTrackToAdd(selectedTrack);
                     dialog.show(getParentFragmentManager(), "add_to_playlist");
+                } else if (menuItem == TrackMenuPopup.MenuItem.LOOP) {
+                    PlaybackManager.getInstance().toggleLoop(selectedTrack);
+                    boolean isLooping = PlaybackManager.getInstance().isLooping(selectedTrack);
+                    Toast.makeText(requireContext(),
+                            isLooping ? "Зациклено: " + selectedTrack.getTitle() : "Цикл прерван",
+                            Toast.LENGTH_SHORT).show();
                 }
-                // Остальные пункты пока заглушки
             });
             popup.show(anchorView, track);
         });
