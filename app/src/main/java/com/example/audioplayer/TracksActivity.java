@@ -241,6 +241,12 @@ public class TracksActivity extends AppCompatActivity {
 
             @Override
             public void onTrackCompleted() {
+                PlaybackManager pm = PlaybackManager.getInstance();
+                if (pm.wasPlayingFromNextQueue()) {
+                    pm.resetNextQueueFlag();
+                    Toast.makeText(TracksActivity.this, "Очередь пуста", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 // Сначала проверяем — играем ли из плейлиста
                 AudioTrack nextPlaylistTrack = PlaybackManager.getInstance().getNextTrackInPlaylist();
                 if (nextPlaylistTrack != null) {

@@ -53,7 +53,6 @@ public class TracksFragment extends Fragment {
         rvTracks = view.findViewById(R.id.rvTracks);
         progressBar = view.findViewById(R.id.progressBar);
         tvStatus = view.findViewById(R.id.tvStatus);
-
         prefs = requireActivity().getSharedPreferences(PREFS_NAME, requireActivity().MODE_PRIVATE);
 
         rvTracks.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -69,20 +68,30 @@ public class TracksFragment extends Fragment {
                     Toast.makeText(requireContext(),
                             isLooping ? "Зациклено: " + selectedTrack.getTitle() : "Цикл прерван",
                             Toast.LENGTH_SHORT).show();
+                } else if (menuItem == TrackMenuPopup.MenuItem.PLAY_NEXT) {
+                    PlaybackManager pm = PlaybackManager.getInstance();
+                    if (pm.isPlaying()) {
+                        // Что-то играет → добавляем в очередь
+                        pm.addToNextQueue(selectedTrack);
+                        Toast.makeText(requireContext(), "В очереди: " + selectedTrack.getTitle(), Toast.LENGTH_SHORT).show();
+                    } else {
+                        // Ничего не играет → запускаем сразу, НЕ добавляя в очередь (чтобы не сыграл дважды)
+                        pm.markPlayingFromNextQueue();
+                        pm.playTrack(selectedTrack);
+                        Toast.makeText(requireContext(), "Воспроизведение: " + selectedTrack.getTitle(), Toast.LENGTH_SHORT).show();
+                    }
                 }
             });
             popup.show(anchorView, track);
         });
         rvTracks.setAdapter(adapter);
 
-        // Восстанавливаем подсветку текущего трека при создании фрагмента
         if (PlaybackManager.getInstance().isReady()) {
             AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
             if (current != null && adapter != null) {
                 adapter.setPlayingTrack(current);
             }
         }
-
         loadOrScanTracks();
     }
 
@@ -93,8 +102,6 @@ public class TracksFragment extends Fragment {
             tvStatus.setVisibility(View.GONE);
             rvTracks.setVisibility(View.VISIBLE);
             adapter.updateTracks(savedTracks);
-
-            // После загрузки треков снова применяем подсветку
             if (PlaybackManager.getInstance().isReady()) {
                 AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
                 if (current != null) {
@@ -114,7 +121,6 @@ public class TracksFragment extends Fragment {
 
         Set<String> foldersSet = prefs.getStringSet(KEY_FOLDERS, new HashSet<>());
         List<String> folders = new ArrayList<>(foldersSet);
-
         if (folders.isEmpty()) {
             progressBar.setVisibility(View.GONE);
             tvStatus.setVisibility(View.VISIBLE);
@@ -130,7 +136,6 @@ public class TracksFragment extends Fragment {
             adapter.updateTracks(tracks);
             Mp3Scanner.saveTracksToPrefs(requireContext(), tracks);
             Toast.makeText(requireContext(), "Найдено: " + tracks.size() + " треков", Toast.LENGTH_SHORT).show();
-
             if (PlaybackManager.getInstance().isReady()) {
                 AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
                 if (current != null) {
@@ -138,7 +143,6 @@ public class TracksFragment extends Fragment {
                 }
             }
         });
-
         scanner.startScanning(folders);
     }
 

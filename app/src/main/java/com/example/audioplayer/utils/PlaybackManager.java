@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -15,12 +16,6 @@ import com.example.audioplayer.services.AudioPlayerService;
 
 import java.util.ArrayList;
 import java.util.List;
-
-/**
- * Singleton-менеджер для централизованного управления воспроизведением.
- * Позволяет любой части приложения контролировать плеер без прямой привязки к Service.
- * В будущем: добавить очередь, shuffle, repeat, медиа-сессии.
- */
 
 public class PlaybackManager {
 
@@ -35,12 +30,14 @@ public class PlaybackManager {
     private long lastPlayRequestTime = 0;
     private static final long MIN_PLAY_INTERVAL_MS = 150;
 
-    // Слушатели для обновления UI в разных активностях (несколько одновременно)
     private final List<AudioPlayerService.OnPlaybackListener> uiListeners = new ArrayList<>();
 
-    // Контекст плейлиста для автоперехода к следующему треку
     private String currentPlaylistId;
     private List<AudioTrack> currentPlaylistTracks;
+
+    // === ОЧЕРЕДЬ "PLAY NEXT" ===
+    private final List<AudioTrack> nextQueue = new ArrayList<>();
+    private boolean wasPlayingFromNextQueue = false;
 
     private PlaybackManager() {}
 
@@ -50,7 +47,6 @@ public class PlaybackManager {
         }
         return instance;
     }
-
 
     public void init(@NonNull Context context) {
         this.appContext = context.getApplicationContext();
@@ -92,6 +88,45 @@ public class PlaybackManager {
         }
     };
 
+    // === МЕТОДЫ ОЧЕРЕДИ ===
+
+    public void addToNextQueue(@NonNull AudioTrack track) {
+        nextQueue.add(track);
+    }
+
+    @Nullable
+    public AudioTrack pollNextQueue() {
+        if (!nextQueue.isEmpty()) {
+            return nextQueue.remove(0);
+        }
+        return null;
+    }
+
+    public boolean hasNextQueueItems() {
+        return !nextQueue.isEmpty();
+    }
+
+    public void clearNextQueue() {
+        nextQueue.clear();
+        wasPlayingFromNextQueue = false;
+    }
+
+    public void interruptNextQueue() {
+        clearNextQueue();
+    }
+
+    public void markPlayingFromNextQueue() {
+        wasPlayingFromNextQueue = true;
+    }
+
+    public boolean wasPlayingFromNextQueue() {
+        return wasPlayingFromNextQueue;
+    }
+
+    public void resetNextQueueFlag() {
+        wasPlayingFromNextQueue = false;
+    }
+
     public void playTrack(@NonNull AudioTrack track) {
         if (isLoopMode && loopedTrackPath != null && track.getFilePath() != null &&
                 !track.getFilePath().equals(loopedTrackPath)) {
@@ -109,7 +144,6 @@ public class PlaybackManager {
                 playerService.isPlaying()) {
             return;
         }
-
         playerService.loadTrack(track);
         playerService.play();
     }
@@ -159,7 +193,6 @@ public class PlaybackManager {
         return playerService != null && playerService.isPlaying();
     }
 
-
     @Nullable
     public AudioTrack getCurrentTrack() {
         return playerService != null ? playerService.getCurrentTrack() : null;
@@ -178,7 +211,6 @@ public class PlaybackManager {
         uiListeners.remove(listener);
     }
 
-    // Обратная совместимость — заменяет единственный слушатель
     public void setUiListener(@Nullable AudioPlayerService.OnPlaybackListener listener) {
         uiListeners.clear();
         if (listener != null) {
@@ -189,23 +221,15 @@ public class PlaybackManager {
         }
     }
 
-
-    /**
-     * Включить/выключить зацикливание для трека.
-     * Если трек не играет — начать воспроизведение.
-     */
     public void toggleLoop(@NonNull AudioTrack track) {
         if (track == null || track.getFilePath() == null) return;
-
         String trackPath = track.getFilePath();
-
         if (isLoopMode && loopedTrackPath != null && loopedTrackPath.equals(trackPath)) {
             isLoopMode = false;
             loopedTrackPath = null;
         } else {
             isLoopMode = true;
             loopedTrackPath = trackPath;
-
             AudioTrack current = getCurrentTrack();
             if (current == null || !trackPath.equals(current.getFilePath())) {
                 playTrack(track);
@@ -213,24 +237,15 @@ public class PlaybackManager {
         }
     }
 
-    /**
-     * Проверить, зациклен ли указанный трек.
-     */
     public boolean isLooping(@Nullable AudioTrack track) {
         if (!isLoopMode || track == null || track.getFilePath() == null) return false;
         return loopedTrackPath != null && loopedTrackPath.equals(track.getFilePath());
     }
 
-    /**
-     * Проверить, активен ли режим зацикливания (для любого трека).
-     */
     public boolean isLoopModeActive() {
         return isLoopMode;
     }
 
-    /**
-     * Получить путь к зацикленному треку (для внутреннего использования).
-     */
     @Nullable
     String getLoopedTrackPath() {
         return loopedTrackPath;
@@ -245,7 +260,6 @@ public class PlaybackManager {
         return isBound && playerService != null;
     }
 
-    // Composite listener — перенаправляет события всем зарегистрированным слушателям
     private final AudioPlayerService.OnPlaybackListener compositeListener = new AudioPlayerService.OnPlaybackListener() {
         @Override
         public void onPlaybackStateChanged(boolean isPlaying) {
@@ -279,10 +293,27 @@ public class PlaybackManager {
                 }
             }
 
+            AudioTrack nextFromQueue = pollNextQueue();
+            if (nextFromQueue != null) {
+                if (playerService != null) {
+                    playerService.loadTrack(nextFromQueue);
+                    playerService.play();
+                }
+                markPlayingFromNextQueue();
+                return;
+            }
+
+            if (wasPlayingFromNextQueue) {
+                resetNextQueueFlag();
+                if (appContext != null) {
+                    Toast.makeText(appContext, "Очередь пуста", Toast.LENGTH_SHORT).show();
+                }
+                return;
+            }
+
             for (AudioPlayerService.OnPlaybackListener l : new ArrayList<>(uiListeners)) {
                 l.onTrackCompleted();
             }
         }
-
     };
 }

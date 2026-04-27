@@ -26,6 +26,8 @@ import com.example.audioplayer.ui.PlaylistMenuPopup;
 import com.example.audioplayer.utils.PlaybackManager;
 import com.example.audioplayer.utils.PlaylistManager;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class PlaylistsFragment extends Fragment {
@@ -60,8 +62,11 @@ public class PlaylistsFragment extends Fragment {
         adapter.setOnPlaylistMenuClickListener((playlist, anchorView) -> {
             PlaylistMenuPopup popup = new PlaylistMenuPopup(requireContext(), (menuItem, selectedPlaylist) -> {
                 switch (menuItem) {
-                    case PLAY:
+                    case PLAY_IN_ORDER:
                         playPlaylist(selectedPlaylist);
+                        break;
+                    case SHUFFLE:
+                        playPlaylistShuffled(selectedPlaylist);
                         break;
                     case RENAME:
                         showRenameDialog(selectedPlaylist);
@@ -75,7 +80,6 @@ public class PlaylistsFragment extends Fragment {
         });
 
         btnCreatePlaylist.setOnClickListener(v -> showCreatePlaylistDialog());
-
         loadPlaylists();
     }
 
@@ -96,9 +100,26 @@ public class PlaylistsFragment extends Fragment {
             Toast.makeText(requireContext(), "В плейлисте нет треков", Toast.LENGTH_SHORT).show();
             return;
         }
+        // Клик по плейлисту = явное действие пользователя → прерываем очередь
+        PlaybackManager.getInstance().interruptNextQueue();
         AudioTrack firstTrack = tracks.get(0);
         PlaybackManager.getInstance().playTrackFromPlaylist(firstTrack, playlist.getId(), tracks);
         Toast.makeText(requireContext(), "Воспроизведение: " + playlist.getName(), Toast.LENGTH_SHORT).show();
+    }
+
+    private void playPlaylistShuffled(Playlist playlist) {
+        List<AudioTrack> tracks = playlist.getTracks();
+        if (tracks == null || tracks.isEmpty()) {
+            Toast.makeText(requireContext(), "В плейлисте нет треков", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // Клик по плейлисту = явное действие пользователя → прерываем очередь
+        PlaybackManager.getInstance().interruptNextQueue();
+        List<AudioTrack> shuffled = new ArrayList<>(tracks);
+        Collections.shuffle(shuffled);
+        AudioTrack firstTrack = shuffled.get(0);
+        PlaybackManager.getInstance().playTrackFromPlaylist(firstTrack, playlist.getId(), shuffled);
+        Toast.makeText(requireContext(), "В перемешку: " + playlist.getName(), Toast.LENGTH_SHORT).show();
     }
 
     private void showRenameDialog(Playlist playlist) {

@@ -39,22 +39,16 @@ public class PlaylistDetailActivity extends AppCompatActivity {
 
     private final AudioPlayerService.OnPlaybackListener playbackListener = new AudioPlayerService.OnPlaybackListener() {
         @Override
-        public void onPlaybackStateChanged(boolean isPlaying) {
-            // Заглушка: можно добавить обновление UI кнопки play/pause позже
-        }
+        public void onPlaybackStateChanged(boolean isPlaying) {}
 
         @Override
-        public void onProgressUpdated(int currentPosition, int duration) {
-            // Заглушка: можно добавить обновление прогресс-бара позже
-        }
+        public void onProgressUpdated(int currentPosition, int duration) {}
 
         @Override
         public void onTrackChanged(AudioTrack track) {
             if (adapter != null && track != null) {
                 adapter.setPlayingTrack(track);
             }
-            // Мини-панель уже обновляется через setupMiniPlayer(),
-            // но для надёжности можно продублировать:
             if (miniPlayer != null && track != null) {
                 miniPlayer.updateTrackInfo(track);
                 miniPlayer.showPanel();
@@ -63,13 +57,15 @@ public class PlaylistDetailActivity extends AppCompatActivity {
 
         @Override
         public void onTrackCompleted() {
-            String currentPlaylist = PlaybackManager.getInstance().getCurrentPlaylistId();
+            // Обычная логика плейлиста (очередь "Play Next" уже обработана в PlaybackManager)
+            PlaybackManager pm = PlaybackManager.getInstance();
+            String currentPlaylist = pm.getCurrentPlaylistId();
             if (playlistId != null && playlistId.equals(currentPlaylist)) {
-                AudioTrack next = PlaybackManager.getInstance().getNextTrackInPlaylist();
+                AudioTrack next = pm.getNextTrackInPlaylist();
                 if (next != null) {
-                    PlaybackManager.getInstance().playTrack(next);
+                    pm.playTrack(next);
                 } else {
-                    PlaybackManager.getInstance().clearPlaylistContext();
+                    pm.clearPlaylistContext();
                 }
             }
         }
@@ -108,20 +104,29 @@ public class PlaylistDetailActivity extends AppCompatActivity {
                     Toast.makeText(this,
                             isLooping ? "Зациклено: " + selectedTrack.getTitle() : "Цикл прерван",
                             Toast.LENGTH_SHORT).show();
+                } else if (menuItem == TrackMenuPopup.MenuItem.PLAY_NEXT) {
+                    PlaybackManager pm = PlaybackManager.getInstance();
+                    if (pm.isPlaying()) {
+                        pm.addToNextQueue(selectedTrack);
+                        Toast.makeText(this, "В очереди: " + selectedTrack.getTitle(), Toast.LENGTH_SHORT).show();
+                    } else {
+                        pm.markPlayingFromNextQueue();
+                        pm.playTrack(selectedTrack);
+                        Toast.makeText(this, "Воспроизведение: " + selectedTrack.getTitle(), Toast.LENGTH_SHORT).show();
+                    }
                 }
-                // Остальные пункты — заглушки
             });
             popup.show(anchorView, track);
         });
 
         adapter.setOnTrackClickListener(track -> {
+            PlaybackManager.getInstance().interruptNextQueue();
             if (playlist != null) {
                 PlaybackManager.getInstance().playTrackFromPlaylist(track, playlistId, playlist.getTracks());
             }
         });
 
         rvPlaylistTracks.setAdapter(adapter);
-
         setupDragAndDrop();
         setupMiniPlayer();
         loadPlaylist();
@@ -179,7 +184,6 @@ public class PlaylistDetailActivity extends AppCompatActivity {
     private void setupDragAndDrop() {
         ItemTouchHelper.SimpleCallback callback = new ItemTouchHelper.SimpleCallback(
                 ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
-
             @Override
             public boolean onMove(RecyclerView recyclerView,
                                   RecyclerView.ViewHolder viewHolder,
@@ -193,18 +197,14 @@ public class PlaylistDetailActivity extends AppCompatActivity {
                 PlaylistManager.getInstance().moveTrackInPlaylist(playlistId, fromPosition, toPosition);
                 return true;
             }
-
             @Override
-            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-            }
-
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {}
             @Override
             public void clearView(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
                 super.clearView(recyclerView, viewHolder);
                 PlaylistManager.getInstance().saveToPrefs(PlaylistDetailActivity.this);
             }
         };
-
         new ItemTouchHelper(callback).attachToRecyclerView(rvPlaylistTracks);
     }
 
@@ -212,24 +212,15 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         miniPlayer.setOnMiniPlayerClickListener(track ->
                 Toast.makeText(this, track.getTitle(), Toast.LENGTH_SHORT).show()
         );
-
         miniPlayer.setOnMiniPlayerListener(new MiniPlayerPanel.OnMiniPlayerListener() {
-            @Override
-            public void onTrackClicked(AudioTrack track) {
-            }
-
-            @Override
-            public void onTrackChanged(AudioTrack track) {
+            @Override public void onTrackClicked(AudioTrack track) {}
+            @Override public void onTrackChanged(AudioTrack track) {
                 if (adapter != null) {
                     adapter.setPlayingTrack(track);
                 }
             }
-
-            @Override
-            public void onTrackCompleted() {
-            }
+            @Override public void onTrackCompleted() {}
         });
-
         if (PlaybackManager.getInstance().isReady()) {
             AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
             if (current != null) {

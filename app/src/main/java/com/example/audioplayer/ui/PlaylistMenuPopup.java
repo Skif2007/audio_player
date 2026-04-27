@@ -18,7 +18,7 @@ import com.google.android.material.card.MaterialCardView;
 public class PlaylistMenuPopup {
 
     public enum MenuItem {
-        PLAY, RENAME, DELETE
+        PLAY_IN_ORDER, SHUFFLE, RENAME, DELETE
     }
 
     public interface OnMenuItemSelectedListener {
@@ -43,7 +43,6 @@ public class PlaylistMenuPopup {
 
         MaterialCardView card = createPopupCard(playlist, popup);
         popup.setContentView(card);
-
         popup.showAsDropDown(anchor, -dp(12), -dp(4), Gravity.END);
     }
 
@@ -58,28 +57,24 @@ public class PlaylistMenuPopup {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(0, dp(4), 0, dp(4));
 
-        String[] labels = {"Воспроизвести", "Переименовать", "Удалить плейлист"};
-        MenuItem[] items = MenuItem.values();
+        String[] labels = {"Воспр. по порядку", "Воспр. в перемешку", "Переименовать", "Удалить плейлист"};
+        MenuItem[] items = {MenuItem.PLAY_IN_ORDER, MenuItem.SHUFFLE, MenuItem.RENAME, MenuItem.DELETE};
 
         Drawable selectableBackground = getSelectableItemBackground();
 
         for (int i = 0; i < labels.length; i++) {
             final String label = labels[i];
             final MenuItem menuItem = items[i];
-
             TextView item = createMenuItem(label, selectableBackground);
             setupItemAnimation(item);
-
             item.setOnClickListener(v -> {
                 if (listener != null) {
                     listener.onMenuItemSelected(menuItem, playlist);
                 }
                 popup.dismiss();
             });
-
             layout.addView(item);
         }
-
         card.addView(layout);
         return card;
     }
