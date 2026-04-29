@@ -1,5 +1,6 @@
 package com.example.audioplayer.fragments;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -160,5 +161,50 @@ public class TracksFragment extends Fragment {
 
     public TracksAdapter getAdapter() {
         return adapter;
+    }
+
+    public void triggerRescan() {
+        if (!isAdded()) return;
+
+        if (progressBar != null) progressBar.setVisibility(View.VISIBLE);
+        if (tvStatus != null) {
+            tvStatus.setVisibility(View.VISIBLE);
+            tvStatus.setText("Обновление библиотеки...");
+        }
+        if (rvTracks != null) rvTracks.setVisibility(View.GONE);
+
+        SharedPreferences prefs = requireActivity().getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        Set<String> foldersSet = prefs.getStringSet("selected_folder_paths", new HashSet<>());
+        List<String> folders = new ArrayList<>(foldersSet);
+
+        if (folders.isEmpty()) {
+            if (progressBar != null) progressBar.setVisibility(View.GONE);
+            if (tvStatus != null) {
+                tvStatus.setVisibility(View.VISIBLE);
+                tvStatus.setText("Нет выбранных папок");
+            }
+            return;
+        }
+
+        scanner = new Mp3Scanner(requireContext(), tracks -> {
+            if (!isAdded()) return;
+
+            if (progressBar != null) progressBar.setVisibility(View.GONE);
+            if (tvStatus != null) tvStatus.setVisibility(View.GONE);
+            if (rvTracks != null) rvTracks.setVisibility(View.VISIBLE);
+
+            adapter.updateTracks(tracks);
+            Mp3Scanner.saveTracksToPrefs(requireContext(), tracks);
+
+            Toast.makeText(requireContext(), "Найдено: " + tracks.size() + " треков", Toast.LENGTH_SHORT).show();
+
+            if (PlaybackManager.getInstance().isReady()) {
+                AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
+                if (current != null && adapter != null) {
+                    adapter.setPlayingTrack(current);
+                }
+            }
+        });
+        scanner.startScanning(folders);
     }
 }

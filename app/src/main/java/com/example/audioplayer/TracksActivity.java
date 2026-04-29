@@ -1,6 +1,7 @@
 package com.example.audioplayer;
 
 import android.animation.ValueAnimator;
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.View;
@@ -64,7 +65,21 @@ public class TracksActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
             loadTracksFragment();
+            if (currentTracksFragment != null && getIntent().getBooleanExtra("EXTRA_TRIGGER_SCAN", false)) {
+                currentTracksFragment.triggerRescan();
+            }
             setHeaderVisible(true);
+        }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent.getBooleanExtra("EXTRA_TRIGGER_SCAN", false)) {
+            if (currentTracksFragment != null) {
+                currentTracksFragment.triggerRescan();
+            }
         }
     }
 
@@ -247,14 +262,12 @@ public class TracksActivity extends AppCompatActivity {
                     Toast.makeText(TracksActivity.this, "Очередь пуста", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                // Сначала проверяем — играем ли из плейлиста
                 AudioTrack nextPlaylistTrack = PlaybackManager.getInstance().getNextTrackInPlaylist();
                 if (nextPlaylistTrack != null) {
                     PlaybackManager.getInstance().playTrack(nextPlaylistTrack);
                     return;
                 }
 
-                // Старая логика — следующий трек из общего списка
                 if (currentTracksFragment == null || currentTracksFragment.getAdapter() == null) return;
 
                 AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();

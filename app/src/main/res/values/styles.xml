@@ -7,5 +7,10 @@
         <item name="cornerSizeBottomLeft">0dp</item>
         <item name="cornerSizeBottomRight">0dp</item>
     </style>
+    <style name="AppSwitch" parent="Widget.AppCompat.CompoundButton.Switch">
+        <item name="thumbTint">@android:color/white</item>
+        <item name="trackTint">@color/switch_track_color</item>
+        <item name="thumbTextPadding">4dp</item>
+    </style>
 
 </resources>

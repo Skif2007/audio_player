@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">AudioPlayer</string>
+    <string name="scan_music">Сканировать музыку</string>
+    <string name="hidden_music">Скрытая музыка</string>
+    <string name="lockscreen_playback">Воспроизведение на экране блокировки</string>
+    <string name="pause_headphones">Пауза при отключении наушников</string>
+    <string name="scan_directories">Сканируемые директории</string>
 </resources>
