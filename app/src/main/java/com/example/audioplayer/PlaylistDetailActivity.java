@@ -19,9 +19,11 @@ import com.example.audioplayer.services.AudioPlayerService;
 import com.example.audioplayer.ui.AddToPlaylistDialog;
 import com.example.audioplayer.ui.TrackMenuPopup;
 import com.example.audioplayer.utils.MiniPlayerPanel;
+import com.example.audioplayer.utils.Mp3Scanner;
 import com.example.audioplayer.utils.PlaybackManager;
 import com.example.audioplayer.utils.PlaylistManager;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PlaylistDetailActivity extends AppCompatActivity {
@@ -57,7 +59,6 @@ public class PlaylistDetailActivity extends AppCompatActivity {
 
         @Override
         public void onTrackCompleted() {
-            // Обычная логика плейлиста (очередь "Play Next" уже обработана в PlaybackManager)
             PlaybackManager pm = PlaybackManager.getInstance();
             String currentPlaylist = pm.getCurrentPlaylistId();
             if (playlistId != null && playlistId.equals(currentPlaylist)) {
@@ -92,6 +93,7 @@ public class PlaylistDetailActivity extends AppCompatActivity {
         btnBack.setOnClickListener(v -> finish());
 
         rvPlaylistTracks.setLayoutManager(new LinearLayoutManager(this));
+
         adapter = new PlaylistTracksAdapter(this, null, (track, anchorView) -> {
             TrackMenuPopup popup = new TrackMenuPopup(this, (menuItem, selectedTrack) -> {
                 if (menuItem == TrackMenuPopup.MenuItem.ADD_TO_PLAYLIST) {
@@ -115,7 +117,25 @@ public class PlaylistDetailActivity extends AppCompatActivity {
                         Toast.makeText(this, "Воспроизведение: " + selectedTrack.getTitle(), Toast.LENGTH_SHORT).show();
                     }
                 }
-            });
+                else if (menuItem == TrackMenuPopup.MenuItem.REMOVE_FROM_PLAYLIST) {
+                    PlaylistManager.getInstance().removeTrackFromPlaylist(playlistId, selectedTrack.getFilePath());
+                    PlaylistManager.getInstance().saveToPrefs(PlaylistDetailActivity.this);
+                    Toast.makeText(this, "Трек удалён из плейлиста", Toast.LENGTH_SHORT).show();
+                    loadPlaylist();
+                }
+                else if (menuItem == TrackMenuPopup.MenuItem.HIDE) {
+                    Mp3Scanner.hideTrack(PlaylistDetailActivity.this, selectedTrack.getFilePath());
+                    PlaylistManager.getInstance().removeTrackFromAllPlaylists(selectedTrack.getFilePath());
+                    PlaylistManager.getInstance().saveToPrefs(PlaylistDetailActivity.this);
+                    Toast.makeText(this, "Трек добавлен в скрытые", Toast.LENGTH_SHORT).show();
+
+                    // ✅ ФИКС: обновляем UI из in-memory данных, не ждём async save
+                    playlist = PlaylistManager.getInstance().getPlaylist(playlistId);
+                    if (playlist != null) {
+                        updateTrackList();
+                    }
+                }
+            }, true);
             popup.show(anchorView, track);
         });
 
@@ -161,7 +181,7 @@ public class PlaylistDetailActivity extends AppCompatActivity {
 
     private void updateTrackList() {
         List<AudioTrack> tracks = playlist.getTracks();
-        adapter.updateTracks(tracks);
+        adapter.updateTracks(filterHiddenTracks(tracks));
         if (tracks.isEmpty()) {
             tvEmpty.setVisibility(View.VISIBLE);
             rvPlaylistTracks.setVisibility(View.GONE);
@@ -206,6 +226,17 @@ public class PlaylistDetailActivity extends AppCompatActivity {
             }
         };
         new ItemTouchHelper(callback).attachToRecyclerView(rvPlaylistTracks);
+    }
+
+    private List<AudioTrack> filterHiddenTracks(List<AudioTrack> tracks) {
+        if (tracks == null) return new ArrayList<>();
+        List<AudioTrack> visible = new ArrayList<>();
+        for (AudioTrack t : tracks) {
+            if (!Mp3Scanner.isHidden(this, t.getFilePath())) {
+                visible.add(t);
+            }
+        }
+        return visible;
     }
 
     private void setupMiniPlayer() {

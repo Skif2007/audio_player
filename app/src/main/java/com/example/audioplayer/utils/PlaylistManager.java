@@ -101,4 +101,18 @@ public class PlaylistManager {
             playlists.addAll(loaded);
         }
     }
+
+    public void removeTrackFromPlaylist(String playlistId, String filePath) {
+        Playlist playlist = getPlaylist(playlistId);
+        if (playlist != null && filePath != null) {
+            playlist.getTracks().removeIf(t -> t.getFilePath() != null && t.getFilePath().equals(filePath));
+        }
+    }
+
+    public void removeTrackFromAllPlaylists(String filePath) {
+        if (filePath == null) return;
+        for (Playlist p : playlists) {
+            p.getTracks().removeIf(t -> t.getFilePath() != null && t.getFilePath().equals(filePath));
+        }
+    }
 }

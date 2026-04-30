@@ -35,7 +35,6 @@ public class PlaybackManager {
     private String currentPlaylistId;
     private List<AudioTrack> currentPlaylistTracks;
 
-    // === ОЧЕРЕДЬ "PLAY NEXT" ===
     private final List<AudioTrack> nextQueue = new ArrayList<>();
     private boolean wasPlayingFromNextQueue = false;
 
@@ -88,7 +87,6 @@ public class PlaybackManager {
         }
     };
 
-    // === МЕТОДЫ ОЧЕРЕДИ ===
 
     public void addToNextQueue(@NonNull AudioTrack track) {
         nextQueue.add(track);
@@ -128,6 +126,8 @@ public class PlaybackManager {
     }
 
     public void playTrack(@NonNull AudioTrack track) {
+        interruptNextQueue();
+
         if (isLoopMode && loopedTrackPath != null && track.getFilePath() != null &&
                 !track.getFilePath().equals(loopedTrackPath)) {
             isLoopMode = false;

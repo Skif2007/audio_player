@@ -17,15 +17,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.audioplayer.models.AudioTrack;
-import com.example.audioplayer.utils.PlaybackManager; // ← обычный импорт
+import com.example.audioplayer.utils.PlaybackManager;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 public class TrackMenuPopup {
 
     public enum MenuItem {
-        LOOP, PLAY_NEXT, DELETE, ADD_TO_PLAYLIST, HIDE, SHARE, ABOUT
+        LOOP, PLAY_NEXT, DELETE, ADD_TO_PLAYLIST, REMOVE_FROM_PLAYLIST, HIDE, SHARE, ABOUT
     }
 
     public interface OnMenuItemSelectedListener {
@@ -34,10 +36,12 @@ public class TrackMenuPopup {
 
     private final Context context;
     private final OnMenuItemSelectedListener listener;
+    private final boolean showRemoveFromPlaylist;
 
-    public TrackMenuPopup(Context context, OnMenuItemSelectedListener listener) {
+    public TrackMenuPopup(Context context, OnMenuItemSelectedListener listener, boolean showRemoveFromPlaylist) {
         this.context = context;
         this.listener = listener;
+        this.showRemoveFromPlaylist = showRemoveFromPlaylist;
     }
 
     public void show(View anchor, AudioTrack track) {
@@ -62,21 +66,30 @@ public class TrackMenuPopup {
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(0, dp(4), 0, dp(4));
 
-        // ← прямой вызов вместо рефлексии
         boolean isLooping = PlaybackManager.getInstance().isLooping(track);
 
-        String[] labels = {
-                isLooping ? "Прервать цикл" : "Зациклить",
-                "Воспроизвести следующим", "Удалить с устройства",
-                "Добавить в плейлист", "Скрыть трек", "Поделиться", "О треке"
-        };
-        MenuItem[] items = MenuItem.values();
+        List<String> labels = new ArrayList<>();
+        List<MenuItem> items = new ArrayList<>();
+
+        labels.add(isLooping ? "Прервать цикл" : "Зациклить"); items.add(MenuItem.LOOP);
+        labels.add("Воспроизвести следующим"); items.add(MenuItem.PLAY_NEXT);
+        labels.add("Удалить с устройства"); items.add(MenuItem.DELETE);
+        labels.add("Добавить в плейлист"); items.add(MenuItem.ADD_TO_PLAYLIST);
+
+        if (showRemoveFromPlaylist) {
+            labels.add("Удалить из плейлиста"); items.add(MenuItem.REMOVE_FROM_PLAYLIST);
+        }
+
+        labels.add("Скрыть трек"); items.add(MenuItem.HIDE);
+        labels.add("Поделиться"); items.add(MenuItem.SHARE);
+        labels.add("О треке"); items.add(MenuItem.ABOUT);
 
         Drawable selectableBackground = getSelectableItemBackground();
 
-        for (int i = 0; i < labels.length; i++) {
-            final String label = labels[i];
-            final MenuItem menuItem = items[i];
+        // ➕ ИСПРАВЛЕНО: .get(i) вместо [i] для List
+        for (int i = 0; i < labels.size(); i++) {
+            final String label = labels.get(i);
+            final MenuItem menuItem = items.get(i);
 
             TextView item = createMenuItem(label, selectableBackground);
             setupItemAnimation(item);
@@ -93,11 +106,9 @@ public class TrackMenuPopup {
                     }
                     listener.onMenuItemSelected(menuItem, track);
                 }
-                //   Когда все пункты реализую уберу эти тосты
                 Toast.makeText(context, "Нажат пункт: " + label, Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             });
-
 
             layout.addView(item);
         }
@@ -194,7 +205,6 @@ public class TrackMenuPopup {
             for (String[] row : rows) {
                 if (row[1] == null || row[1].isEmpty()) continue;
 
-                // Ключ
                 TextView key = new TextView(context);
                 key.setText(row[0]);
                 key.setTextColor(keyColor);

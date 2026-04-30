@@ -1,5 +1,7 @@
 package com.example.audioplayer.utils;
 
+import static java.nio.file.Files.isHidden;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.media.MediaMetadataRetriever;
@@ -14,12 +16,15 @@ import com.google.gson.Gson;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Mp3Scanner {
     private Context context;
     private OnScanCompleteListener listener;
     private int errorCount = 0;
+    private static final String KEY_HIDDEN_TRACKS = "hidden_tracks_paths";
 
 
     public interface OnScanCompleteListener {
@@ -66,11 +71,12 @@ public class Mp3Scanner {
             if(file.isDirectory()){
                 scanDirectoryRecursive(file, tracks);
             }
-            else if(file.isFile() && file.getName().toLowerCase().endsWith(".mp3")){
-                AudioTrack track = extractMetadata(file);
-                if(track != null){
-                    tracks.add(track);
+            else if(file.isFile() && file.getName().toLowerCase().endsWith(".mp3")) {
+                String filePath = file.getAbsolutePath();
+                if (isHidden(this.context, filePath)) {
+                    continue;
                 }
+                AudioTrack track = extractMetadata(file);
             }
         }
     }
@@ -148,5 +154,44 @@ public class Mp3Scanner {
 
     public String getScanStats() {
         return "Ошибок: " + errorCount;
+    }
+
+    public static Set<String> getHiddenTracks(Context ctx) {
+        SharedPreferences prefs = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        Set<String> hidden = prefs.getStringSet(KEY_HIDDEN_TRACKS, new HashSet<>());
+
+        Set<String> cleaned = new HashSet<>();
+        boolean needsSave = false;
+        for (String path : hidden) {
+            if (new File(path).exists()) {
+                cleaned.add(path);
+            } else {
+                needsSave = true;
+            }
+        }
+        if (needsSave) {
+            prefs.edit().putStringSet(KEY_HIDDEN_TRACKS, cleaned).apply();
+        }
+        return cleaned;
+    }
+
+    public static void hideTrack(Context ctx, String filePath) {
+        SharedPreferences prefs = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        Set<String> hidden = prefs.getStringSet(KEY_HIDDEN_TRACKS, new HashSet<>());
+        Set<String> newHidden = new HashSet<>(hidden);
+        newHidden.add(filePath);
+        prefs.edit().putStringSet(KEY_HIDDEN_TRACKS, newHidden).apply();
+    }
+
+    public static void unhideTrack(Context ctx, String filePath) {
+        SharedPreferences prefs = ctx.getSharedPreferences("app_settings", Context.MODE_PRIVATE);
+        Set<String> hidden = prefs.getStringSet(KEY_HIDDEN_TRACKS, new HashSet<>());
+        Set<String> newHidden = new HashSet<>(hidden);
+        newHidden.remove(filePath);
+        prefs.edit().putStringSet(KEY_HIDDEN_TRACKS, newHidden).apply();
+    }
+
+    public static boolean isHidden(Context ctx, String filePath) {
+        return getHiddenTracks(ctx).contains(filePath);
     }
 }

@@ -57,6 +57,7 @@ public class TracksFragment extends Fragment {
         prefs = requireActivity().getSharedPreferences(PREFS_NAME, requireActivity().MODE_PRIVATE);
 
         rvTracks.setLayoutManager(new LinearLayoutManager(requireContext()));
+
         adapter = new TracksAdapter(requireContext(), new ArrayList<>(), (track, anchorView) -> {
             TrackMenuPopup popup = new TrackMenuPopup(requireContext(), (menuItem, selectedTrack) -> {
                 if (menuItem == TrackMenuPopup.MenuItem.ADD_TO_PLAYLIST) {
@@ -72,17 +73,27 @@ public class TracksFragment extends Fragment {
                 } else if (menuItem == TrackMenuPopup.MenuItem.PLAY_NEXT) {
                     PlaybackManager pm = PlaybackManager.getInstance();
                     if (pm.isPlaying()) {
-                        // Что-то играет → добавляем в очередь
                         pm.addToNextQueue(selectedTrack);
                         Toast.makeText(requireContext(), "В очереди: " + selectedTrack.getTitle(), Toast.LENGTH_SHORT).show();
                     } else {
-                        // Ничего не играет → запускаем сразу, НЕ добавляя в очередь (чтобы не сыграл дважды)
                         pm.markPlayingFromNextQueue();
                         pm.playTrack(selectedTrack);
                         Toast.makeText(requireContext(), "Воспроизведение: " + selectedTrack.getTitle(), Toast.LENGTH_SHORT).show();
                     }
+                } else if (menuItem == TrackMenuPopup.MenuItem.HIDE) {
+                    Mp3Scanner.hideTrack(requireContext(), selectedTrack.getFilePath());
+                    Toast.makeText(requireContext(), "Трек добавлен в скрытые", Toast.LENGTH_SHORT).show();
+
+                    List<AudioTrack> current = adapter.getCurrentTracks();
+                    List<AudioTrack> filtered = new ArrayList<>();
+                    for (AudioTrack t : current) {
+                        if (!t.getFilePath().equals(selectedTrack.getFilePath())) {
+                            filtered.add(t);
+                        }
+                    }
+                    adapter.updateTracks(filtered);
                 }
-            });
+            }, false);
             popup.show(anchorView, track);
         });
         rvTracks.setAdapter(adapter);
@@ -102,7 +113,7 @@ public class TracksFragment extends Fragment {
             progressBar.setVisibility(View.GONE);
             tvStatus.setVisibility(View.GONE);
             rvTracks.setVisibility(View.VISIBLE);
-            adapter.updateTracks(savedTracks);
+            adapter.updateTracks(filterHiddenTracks(savedTracks));
             if (PlaybackManager.getInstance().isReady()) {
                 AudioTrack current = PlaybackManager.getInstance().getCurrentTrack();
                 if (current != null) {
@@ -134,7 +145,7 @@ public class TracksFragment extends Fragment {
             progressBar.setVisibility(View.GONE);
             tvStatus.setVisibility(View.GONE);
             rvTracks.setVisibility(View.VISIBLE);
-            adapter.updateTracks(tracks);
+            adapter.updateTracks(filterHiddenTracks(tracks));
             Mp3Scanner.saveTracksToPrefs(requireContext(), tracks);
             Toast.makeText(requireContext(), "Найдено: " + tracks.size() + " треков", Toast.LENGTH_SHORT).show();
             if (PlaybackManager.getInstance().isReady()) {
@@ -151,6 +162,17 @@ public class TracksFragment extends Fragment {
         if (isAdded()) {
             Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private List<AudioTrack> filterHiddenTracks(List<AudioTrack> tracks) {
+        if (tracks == null) return new ArrayList<>();
+        List<AudioTrack> visible = new ArrayList<>();
+        for (AudioTrack t : tracks) {
+            if (!Mp3Scanner.isHidden(requireContext(), t.getFilePath())) {
+                visible.add(t);
+            }
+        }
+        return visible;
     }
 
     @Override
@@ -193,7 +215,7 @@ public class TracksFragment extends Fragment {
             if (tvStatus != null) tvStatus.setVisibility(View.GONE);
             if (rvTracks != null) rvTracks.setVisibility(View.VISIBLE);
 
-            adapter.updateTracks(tracks);
+            adapter.updateTracks(filterHiddenTracks(tracks));
             Mp3Scanner.saveTracksToPrefs(requireContext(), tracks);
 
             Toast.makeText(requireContext(), "Найдено: " + tracks.size() + " треков", Toast.LENGTH_SHORT).show();
