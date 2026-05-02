@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:id="@+id/ivBackground"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="24dp">
+
+        <!-- Верхняя панель -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <ImageButton
+                android:id="@+id/btnBack"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_alignParentStart="true"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Свернуть"
+                android:src="@drawable/ic_collapse_down"
+                app:tint="#FFFFFF" />
+
+            <LinearLayout
+                android:id="@+id/tabContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tabSong"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="8dp"
+                    android:text="Песня"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="4dp"
+                    android:text="|"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/tabText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="8dp"
+                    android:text="Текст"
+                    android:textColor="#AAAAAA"
+                    android:textSize="18sp"
+                    android:textStyle="normal" />
+            </LinearLayout>
+        </RelativeLayout>
+
+        <!-- Контент табов -->
+        <FrameLayout
+            android:id="@+id/tabContentContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:id="@+id/songContent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_horizontal"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/ivTrackCover"
+                    android:layout_width="260dp"
+                    android:layout_height="260dp"
+                    android:layout_marginTop="32dp"
+                    android:background="@drawable/bg_rounded_cover"
+                    android:clipToOutline="true"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_placeholder_cover" />
+
+                <TextView
+                    android:id="@+id/tvSongTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:gravity="center" />
+
+                <TextView
+                    android:id="@+id/tvSongArtist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textColor="#AAAAAA"
+                    android:textSize="16sp"
+                    android:gravity="center" />
+
+                <!-- Расталкиватель -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <!-- Контролы (всегда у низа, центрированы) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tvCurrentTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="00:00"
+                            android:textColor="#DDDDDD"
+                            android:textSize="13sp" />
+
+                        <SeekBar
+                            android:id="@+id/seekBar"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:progressTint="#FFFFFF"
+                            android:thumbTint="#FFFFFF" />
+
+                        <TextView
+                            android:id="@+id/tvTotalTime"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="00:00"
+                            android:textColor="#DDDDDD"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="24dp"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <ImageButton
+                            android:id="@+id/btnPrev"
+                            android:layout_width="64dp"
+                            android:layout_height="64dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Предыдущий трек"
+                            android:src="@android:drawable/ic_media_previous"
+                            app:tint="#FFFFFF" />
+
+                        <ImageButton
+                            android:id="@+id/btnPlayPause"
+                            android:layout_width="72dp"
+                            android:layout_height="72dp"
+                            android:layout_marginHorizontal="24dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Плей/Пауза"
+                            android:src="@android:drawable/ic_media_play"
+                            app:tint="#FFFFFF" />
+
+                        <ImageButton
+                            android:id="@+id/btnNext"
+                            android:layout_width="64dp"
+                            android:layout_height="64dp"
+                            android:background="?attr/selectableItemBackgroundBorderless"
+                            android:contentDescription="Следующий трек"
+                            android:src="@android:drawable/ic_media_next"
+                            app:tint="#FFFFFF" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:id="@+id/lyricsContent"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+        </FrameLayout>
+    </LinearLayout>
+</FrameLayout>

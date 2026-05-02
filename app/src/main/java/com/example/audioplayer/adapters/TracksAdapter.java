@@ -88,7 +88,7 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
     @Override
     public void onBindViewHolder(@NonNull TrackViewHolder holder, int position) {
         AudioTrack track = tracks.get(position);
-        holder.bind(track, position == playingPosition, menuClickListener);
+        holder.bind(track, position == playingPosition, menuClickListener, tracks);
     }
 
     @Override
@@ -134,25 +134,23 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
         /**
          * Привязывает данные и состояние к элементу.
          */
-        public void bind(AudioTrack track, boolean isPlaying, OnTrackMenuClickListener menuClickListener) {
+        public void bind(AudioTrack track, boolean isPlaying,
+                         OnTrackMenuClickListener menuClickListener,
+                         List<AudioTrack> contextTracks) {
             tvTitle.setText(track.getTitle());
             tvArtist.setText(track.getArtist());
-
             loadAlbumArtAsync(track.getAlbumArtFileName(), ivCover);
-
             setPlayingState(isPlaying);
 
             btnMenu.setOnClickListener(v -> {
-                if (menuClickListener != null) {
-                    menuClickListener.onMenuClick(track, v);
-                }
+                if (menuClickListener != null) menuClickListener.onMenuClick(track, v);
             });
 
             itemView.setOnClickListener(v -> {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                     v.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
                 }
-                PlaybackManager.getInstance().playTrack(track);
+                PlaybackManager.getInstance().playTrackWithContext(track, contextTracks);
             });
         }
 
@@ -238,15 +236,5 @@ public class TracksAdapter extends RecyclerView.Adapter<TracksAdapter.TrackViewH
             }).start();
         }
     }
-
-//    public void updatePlayingState(boolean isPlaying) {
-//        if (playingTrack == null) return;
-//        for (int i = 0; i < tracks.size(); i++) {
-//            if (tracks.get(i).getFilePath().equals(playingTrack.getFilePath())) {
-//                notifyItemChanged(i);
-//                break;
-//            }
-//        }
-//    }
 
 }

@@ -67,15 +67,18 @@ public class MiniPlayerPanel extends FrameLayout {
     }
 
     private void init(Context context) {
-        root = LayoutInflater.from(context).inflate(R.layout.mini_player_panel, this, true);
-
+        LayoutInflater.from(context).inflate(R.layout.mini_player_panel, this, true);
+        root = getChildAt(0);
         ivCover = root.findViewById(R.id.ivMiniCover);
         tvTitle = root.findViewById(R.id.tvMiniTitle);
         tvArtist = root.findViewById(R.id.tvMiniArtist);
         btnProgress = root.findViewById(R.id.btnPlayPauseProgress);
         ivPlayPauseIcon = root.findViewById(R.id.ivPlayPauseIcon);
 
+        android.util.Log.d("MiniPlayerDebug", "init: root=" + (root != null) + ", clickable=" + root.isClickable());
+
         root.setOnClickListener(v -> {
+            android.util.Log.d("MiniPlayerDebug", "Клик по root! currentTrack=" + (currentTrack != null ? currentTrack.getTitle() : "null"));
             if (clickListener != null && currentTrack != null) {
                 clickListener.onMiniPlayerClicked(currentTrack);
             }

@@ -322,4 +322,32 @@ public class PlaybackManager {
             }
         }
     };
+    /** Переключает на следующий трек в текущем контексте воспроизведения */
+    public void playNext() {
+        AudioTrack next = getNextTrackInPlaylist();
+        if (next != null) playTrack(next);
+    }
+
+    /** Переключает на предыдущий трек в текущем контексте */
+    public void playPrevious() {
+        if (currentPlaylistTracks == null || currentPlaylistTracks.isEmpty()) return;
+        AudioTrack current = getCurrentTrack();
+        if (current == null) return;
+
+        for (int i = 0; i < currentPlaylistTracks.size(); i++) {
+            if (currentPlaylistTracks.get(i).getFilePath().equals(current.getFilePath())) {
+                if (i > 0) {
+                    playTrack(currentPlaylistTracks.get(i - 1));
+                }
+                break;
+            }
+        }
+    }
+
+    public void playTrackWithContext(@NonNull AudioTrack track, @NonNull List<AudioTrack> contextTracks) {
+        this.currentPlaylistId = "global_tracks";
+        this.currentPlaylistTracks = new ArrayList<>(contextTracks);
+        playTrack(track);
+    }
+
 }

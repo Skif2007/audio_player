@@ -238,9 +238,12 @@ public class TracksActivity extends AppCompatActivity {
     private void setupMiniPlayer() {
         MiniPlayerPanel miniPlayer = findViewById(R.id.miniPlayerPanel);
 
-        miniPlayer.setOnMiniPlayerClickListener(track ->
-                Toast.makeText(this, "Открываем плеер: " + track.getTitle(), Toast.LENGTH_SHORT).show()
-        );
+        miniPlayer.setOnMiniPlayerClickListener(track -> {
+            android.util.Log.d("MiniPlayerDebug", "Клик по мини-панели: " + track.getTitle());
+            Intent intent = new Intent(TracksActivity.this, FullPlayerActivity.class);
+            startActivity(intent);
+            overridePendingTransition(R.anim.slide_up, 0);
+        });
 
         miniPlayer.setOnMiniPlayerListener(new MiniPlayerPanel.OnMiniPlayerListener() {
             @Override

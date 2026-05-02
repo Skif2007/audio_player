@@ -1,5 +1,6 @@
 package com.example.audioplayer;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
@@ -240,9 +241,11 @@ public class PlaylistDetailActivity extends AppCompatActivity {
     }
 
     private void setupMiniPlayer() {
-        miniPlayer.setOnMiniPlayerClickListener(track ->
-                Toast.makeText(this, track.getTitle(), Toast.LENGTH_SHORT).show()
-        );
+        miniPlayer.setOnMiniPlayerClickListener(track -> {
+            Intent intent = new Intent(PlaylistDetailActivity.this, FullPlayerActivity.class);
+            startActivity(intent);
+            overridePendingTransition(R.anim.slide_up, 0);
+        });
         miniPlayer.setOnMiniPlayerListener(new MiniPlayerPanel.OnMiniPlayerListener() {
             @Override public void onTrackClicked(AudioTrack track) {}
             @Override public void onTrackChanged(AudioTrack track) {
