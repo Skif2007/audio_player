@@ -77,7 +77,7 @@ public class AudioPlayerService extends Service {
         });
         mediaPlayer.setOnCompletionListener(mp -> {
             playerState = PlayerState.IDLE;
-            isPrepared = false;
+//            isPrepared = false;
             stopProgressUpdates();
             if (playbackListener != null) {
                 playbackListener.onPlaybackStateChanged(false);
@@ -170,6 +170,10 @@ public class AudioPlayerService extends Service {
 
 
     public void play() {
+        if (playerState == PlayerState.IDLE) {
+            mediaPlayer.seekTo(0);
+            playerState = PlayerState.READY;
+        }
         if (!isPrepared || playerState != PlayerState.READY) {
             return;
         }

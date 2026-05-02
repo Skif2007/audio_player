@@ -144,6 +144,12 @@ public class PlaybackManager {
                 playerService.isPlaying()) {
             return;
         }
+        if (current != null &&
+                current.getFilePath() != null &&
+                current.getFilePath().equals(track.getFilePath()) &&
+                playerService.getCurrentPosition() > 0) {
+            playerService.seekTo(0);
+        }
         playerService.loadTrack(track);
         playerService.play();
     }

@@ -12,5 +12,4 @@
         <item name="trackTint">@color/switch_track_color</item>
         <item name="thumbTextPadding">4dp</item>
     </style>
-
 </resources>
